@@ -40,16 +40,17 @@ class MyCanvas(vispy.scene.SceneCanvas):
 
         # Draw Config
         self.PCscatter = vispy.scene.Markers()
+        self.axis = vispy.scene.XYZAxis()
         self.view.add(self.PCscatter)
+        self.view.add(self.axis)
         self.freeze()
 
     def on_draw(self, event):
         super().on_draw(event)
 
     def timer_go(self, event):
-        if self.nowID < len(self.filepaths):
-            self.nowID += 1
-        else:
+        self.nowID += 1
+        if self.nowID >= len(self.filepaths):
             self.nowID = 0
 
         pc = ReadPCD_XYZI(self.filepaths[self.nowID])
