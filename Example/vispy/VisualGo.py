@@ -4,6 +4,7 @@ import vispy.scene
 import numpy as np
 from pypcd import pypcd
 
+
 def ReadPCD_XYZI(filename):
     pcdata = pypcd.PointCloud.from_path(filename)
     pc = np.asarray(pcdata.pc_data[['x', 'y', 'z', 'intensity']].tolist(), dtype=float)
@@ -28,15 +29,12 @@ pcxyz, pccol = GetPosColor(pc)
 canvas = vispy.scene.SceneCanvas(keys='interactive', show=True, bgcolor='black')
 view = canvas.central_widget.add_view()
 
-vispy.scene
-
 # Camera
 view.camera = vispy.scene.cameras.TurntableCamera(azimuth=90, elevation=30, distance=30)
 
 # Create visuals objects
 # PointCloud
 scatter = vispy.scene.Markers()
-scatter = vispy.scene.visuals.Markers(edge_width=0)
 scatter.set_data(pcxyz, edge_color=None, face_color=pccol, size=3)
 
 # Cube
