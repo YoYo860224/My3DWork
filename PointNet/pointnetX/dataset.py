@@ -141,7 +141,7 @@ class PersonDataset(data.Dataset):
             point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
 
         pc = torch.from_numpy(point_set)
-        label = torch.from_numpy(np.array([self.labels[index]]))
+        label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
         return pc, label
 
     def __len__(self):
@@ -190,7 +190,7 @@ class PersonDataset_Test(data.Dataset):
             point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
 
         pc = torch.from_numpy(point_set)
-        label = torch.from_numpy(np.array([self.labels[index]]))
+        label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
         return pc, label
 
     def __len__(self):

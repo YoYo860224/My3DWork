@@ -79,14 +79,6 @@ for i in range(n):
 pcxyz = GoodXYZ
 pccol = GoodCol
 
-# Number of clusters in labels, ignoring noise if present.
-n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-n_noise_ = list(labels).count(-1)
-
-print('Estimated number of clusters: %d' % n_clusters_)
-print('Estimated number of noise points: %d' % n_noise_)
-
-
 # Make a canvas and add simple view
 canvas = vispy.scene.SceneCanvas(keys='interactive', show=True, bgcolor='black')
 view = canvas.central_widget.add_view()
