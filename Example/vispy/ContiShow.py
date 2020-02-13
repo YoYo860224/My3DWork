@@ -5,6 +5,7 @@ import natsort
 import numpy as np
 from vispy import app, gloo, scene
 from pypcd import pypcd
+import open3d
 
 
 def ReadPCD_XYZI(filename):
@@ -22,6 +23,26 @@ def GetPosColor(pc, clipMax=500):
     pcCol[:, 2] = 0
 
     return pcXYZ, pcCol
+
+def RANSAC_Plane(xyz, thresh=0.3, zmin = -10, zmax = -1):
+    import random
+    maxLen = -1
+    oriZ = xyz[:, 2]
+    needZ = 0
+
+    for _ in range(100):
+        z = random.uniform(zmin, zmax)
+        theZ = oriZ[oriZ < z+thresh]
+        theZ = theZ[theZ > z-thresh]
+
+        if (maxLen < theZ.shape[0]):
+            maxLen = theZ.shape[0]
+            needZ = z
+
+    inliner = np.logical_and((xyz[:, 2] < needZ+thresh), (xyz[:, 2] > needZ-thresh))
+    outliner = np.logical_not(inliner)
+
+    return inliner, outliner
 
 
 class MyCanvas(vispy.scene.SceneCanvas):
@@ -54,7 +75,9 @@ class MyCanvas(vispy.scene.SceneCanvas):
             self.nowID = 0
 
         pc = ReadPCD_XYZI(self.filepaths[self.nowID])
+        inli, _ = RANSAC_Plane(pc)
         pcxyz, pccol = GetPosColor(pc)
+        pccol[inli, :] = 0
         self.PCscatter.set_data(pcxyz, edge_color=None, face_color=pccol, size=3)
 
 
