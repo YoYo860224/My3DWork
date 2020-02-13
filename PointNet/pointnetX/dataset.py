@@ -1,4 +1,3 @@
-
 import open3d
 import os
 import natsort
@@ -8,6 +7,7 @@ import torch
 import torch.utils.data as data
 
 # pragma pylint: disable=maybe-no-member
+
 
 def npReadPcd(filename):
     pcloud: open3d.geometry.PointCloud = open3d.io.read_point_cloud(filename)  # pylint: disable=maybe-no-member

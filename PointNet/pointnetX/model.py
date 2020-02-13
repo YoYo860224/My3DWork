@@ -9,6 +9,7 @@ import torch.nn.functional as F
 
 # pragma pylint: disable=maybe-no-member
 
+
 class STN3d(nn.Module):
     def __init__(self):
         super(STN3d, self).__init__()
