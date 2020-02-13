@@ -5,7 +5,7 @@ import numpy as np
 from utils.io import ReadPCD_XYZI
 from utils.visuals import GetXYZnRGB
 from utils.visuals import MyCube
-from utils.tools import Passthrough, RANSAC_Plane, Cluster, Getlusters
+from utils.tools import Passthrough, RANSAC_Plane, Cluster, Getlusters, DownSampe
 
 
 # generate data
@@ -13,6 +13,7 @@ pc = ReadPCD_XYZI("D:\\Downloads\\ntutOutside\\0451.pcd")
 # pc = ReadPCD_XYZI("D:\\Downloads\\KITTI\\2011_09_28_drive_0016_extract\\velodyne_points\\pcdb\\0000000000.pcd")
 pc = Passthrough(pc, 0, -20, 20)
 pc = Passthrough(pc, 1, -20, 20)
+pc = DownSampe(pc)
 
 pcxyz, pccol = GetXYZnRGB(pc, clipMax=500)
 
@@ -21,6 +22,9 @@ inliner, outliner = RANSAC_Plane(pcxyz, 0.1, 100, -10, -0.5)
 GoodXYZ = pcxyz[outliner, :]
 GoodCol = pccol[outliner, :]
 GoodCol[:, :] = 1
+# GoodXYZ = pcxyz
+# GoodCol = pccol
+# GoodCol[:, :] = 1
 
 # Cluster
 nLabels, labels = Cluster(GoodXYZ)

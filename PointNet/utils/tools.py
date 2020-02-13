@@ -8,6 +8,32 @@ def Passthrough(xyz, dim, vMin, vMax):
     xyz = xyz[xyz[:, dim] > vMin,:]
     return xyz
 
+def DownSampe(xyz):
+    '''
+    -20~+20 * 2  間距 0.1
+    '''
+    a = np.ndarray((400, 400, 400, 4))
+    b = np.ndarray((400, 400, 400))
+    for i in xyz:
+        x = i[0]
+        y = i[1]
+        z = i[2]
+        idx = int((x + 20) // 0.1)
+        idy = int((y + 20) // 0.1)
+        idz = int((z + 20) // 0.1)
+        if (idx > 0 and idx < 400 and idy > 0 and idy < 400 and idz > 0 and idz < 400):
+            a[idx, idy, idz] += i
+            b[idx, idy, idz] += 1
+    a = a.reshape(-1, xyz.shape[-1])
+    b = b.reshape(-1, 1)
+
+    a = a[np.where(b>0)[0]]
+    b = b[np.where(b>0)[0]]
+
+    a = a/b
+
+    return a
+
 def RANSAC_Plane(xyz, thresh=0.1, maxIter=100, zmin = -10, zmax = 0):
     maxLen = -1
     oriZ = xyz[:, 2]

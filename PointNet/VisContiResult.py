@@ -7,7 +7,7 @@ import numpy as np
 from utils.io import ReadPCD_XYZI
 from utils.visuals import GetXYZnRGB
 from utils.visuals import MyCube
-from utils.tools import Passthrough, RANSAC_Plane, Cluster, Getlusters
+from utils.tools import Passthrough, RANSAC_Plane, Cluster, Getlusters, DownSampe
 
 # PointNet
 import torch
@@ -27,7 +27,7 @@ class MyCanvas(vispy.scene.SceneCanvas):
         # Basic View Config
         self.view = self.central_widget.add_view()
         self.view.camera = vispy.scene.cameras.TurntableCamera(azimuth=90, elevation=30, distance=30)
-        self.timer = vispy.app.Timer(interval=2, connect=self.timer_go, start=0.05)
+        self.timer = vispy.app.Timer(interval=5, connect=self.timer_go, start=0.05)
 
         # PC File
         self.fileRoot = ""
@@ -65,7 +65,7 @@ class MyCanvas(vispy.scene.SceneCanvas):
         # pc = ReadPCD_XYZI("D:\\Downloads\\KITTI\\2011_09_28_drive_0016_extract\\velodyne_points\\pcdb\\0000000000.pcd")
         pc = Passthrough(pc, 0, -20, 20)
         pc = Passthrough(pc, 1, -20, 20)
-
+        pc = DownSampe(pc)
         pcxyz, pccol = GetXYZnRGB(pc, clipMax=500)
 
         # RANSAC
@@ -100,7 +100,7 @@ class MyCanvas(vispy.scene.SceneCanvas):
         for clu in Cluster_Person:
             cub = MyCube(clu.min(axis=0), clu.max(axis=0), parent=self.cubesNode)
             self.cubesNode._add_child(cub)
-
+        self.view.add(self.cubesNode)
 
 if __name__ == '__main__':
     canvas = MyCanvas()
