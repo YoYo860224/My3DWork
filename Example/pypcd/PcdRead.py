@@ -7,5 +7,5 @@ def ReadPCD_XYZI(filename):
     return pc
 
 if __name__ == "__main__":
-    pc = ReadPCD_XYZI("D:\\Downloads\\ntutOutside\\0001.pcd")
+    pc = ReadPCD_XYZI("/media/yoyo/harddisk/NTUT_Bagmap/Kitti.pcdb/0000000000.pcd")
     print(pc.shape)

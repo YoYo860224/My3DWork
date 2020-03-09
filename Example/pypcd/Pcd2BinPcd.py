@@ -1,16 +1,22 @@
 import os
+import natsort
 import numpy as np
 from pypcd import pypcd
 
-fromPath = "D:\\Downloads\\KITTI\\2011_09_28_drive_0016_extract\\velodyne_points\\pcd\\"
-toPath = "D:\\Downloads\\KITTI\\2011_09_28_drive_0016_extract\\velodyne_points\\pcdb\\"
+fromPath = "/media/yoyo/harddisk/kitti_personOnly/NP_ori/"
+toPath = "/media/yoyo/harddisk/kitti_personOnly/NP/"
 
 if not os.path.exists(toPath):
     os.mkdir(toPath)
 
-for filename in os.listdir(fromPath):
+i = 0
+for filename in natsort.natsorted(os.listdir(fromPath)):
     loadfilepath = os.path.join(fromPath, filename)
-    savefilepath = os.path.join(toPath, filename)
     pcdata = pypcd.PointCloud.from_path(loadfilepath)
-    pypcd.save_point_cloud_bin(pcdata, savefilepath)
+
+    i+=1
+    savename = '{:04d}.pcd'.format(i)
+    savefilepath = os.path.join(toPath, savename)
+    pypcd.save_point_cloud(pcdata, savefilepath)
+
     print(loadfilepath, " OK!")

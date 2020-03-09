@@ -5,7 +5,6 @@ import natsort
 import numpy as np
 from vispy import app, gloo, scene
 from pypcd import pypcd
-import open3d
 
 
 def ReadPCD_XYZI(filename):
@@ -95,7 +94,7 @@ class MyCanvas(vispy.scene.SceneCanvas):
 
 if __name__ == '__main__':
     canvas = MyCanvas()
-    canvas.SetFileRoot("D:\\Downloads\\ntutOutside\\")
+    canvas.SetFileRoot("/media/yoyo/harddisk/NTUT_Bagmap/NTUTinside.pcdb/")
 
     print(canvas.scene.describe_tree(with_transform=True))
     canvas.measure_fps()
