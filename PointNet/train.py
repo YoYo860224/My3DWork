@@ -61,14 +61,14 @@ if __name__ == "__main__":
     num_batch = len(dataset) // args.batchSize
     for epoch in range(1, args.epochs + 1):
         for i, data in enumerate(dataloader, 0):
-            pc, label, img = data
+            pc, label, _ = data
             tbSize = len(label)
             label = label[:, 0]
             pc = pc.transpose(2, 1)
-            pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+            pc, label = pc.cuda(), label.cuda()
             optimizer.zero_grad()
             classifier = classifier.train()
-            pred, trans, trans_feat = classifier(pc, img)
+            pred, trans, trans_feat = classifier(pc)
             loss = torch.nn.functional.nll_loss(pred, label)
             if args.feature_transform:
                 loss += feature_transform_regularizer(trans_feat) * 0.001
@@ -83,14 +83,14 @@ if __name__ == "__main__":
         
         # Test
         t, data = next(enumerate(dataloader_test, 0))
-        pc, label, img = data
+        pc, label, _ = data
         tbSize = len(label)
         label = label[:, 0]
         pc = pc.transpose(2, 1)
-        pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+        pc, label = pc.cuda(), label.cuda()
         optimizer.zero_grad()
         classifier = classifier.eval()
-        pred, trans, trans_feat = classifier(pc, img)
+        pred, trans, trans_feat = classifier(pc)
         loss = torch.nn.functional.nll_loss(pred, label)
         if args.feature_transform:
             loss += feature_transform_regularizer(trans_feat) * 0.001
@@ -111,6 +111,8 @@ if __name__ == "__main__":
         plt.plot(keepTrAccu, "b")
         plt.plot(keepTeAccu, "r")
         plt.savefig("./F1.png")
+        plt.cla()
         plt.plot(keepTrloss, "b")
         plt.plot(keepTeloss, "r")
         plt.savefig("./F2.png")
+        plt.cla()

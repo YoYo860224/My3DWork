@@ -36,10 +36,10 @@ if __name__ == "__main__":
     tn, tp, fn, fp = 0, 0, 0, 0
 
     for data in dataloader_test:
-        pc, label, img = data
+        pc, label, _ = data
         label = label[:, 0]
         pc = pc.transpose(2, 1)
-        pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+        pc, label = pc.cuda(), label.cuda()
         classifier = classifier.eval()
         pred, trans, trans_feat = classifier(pc, img)
         loss = torch.nn.functional.nll_loss(pred, label)
