@@ -41,7 +41,7 @@ if __name__ == "__main__":
         pc = pc.transpose(2, 1)
         pc, label = pc.cuda(), label.cuda()
         classifier = classifier.eval()
-        pred, trans, trans_feat = classifier(pc, img)
+        pred, trans, trans_feat = classifier(pc)
         loss = torch.nn.functional.nll_loss(pred, label)
         if args.feature_transform:
             loss += feature_transform_regularizer(trans_feat) * 0.001
