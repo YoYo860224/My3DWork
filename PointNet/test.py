@@ -24,7 +24,7 @@ if __name__ == "__main__":
     dataset_test = PersonDataset_Test(args.dataroot)
     dataloader_test = torch.utils.data.DataLoader(
         dataset_test,
-        batch_size=500,
+        batch_size=20,
         shuffle=False,
         num_workers=4)
 
@@ -33,22 +33,25 @@ if __name__ == "__main__":
     classifier.load_state_dict(torch.load(args.model))
     classifier.cuda()
 
-    j, data = next(enumerate(dataloader_test, 0))
-    points, target = data
-    target = target[:, 0]
-    points = points.transpose(2, 1)
-    points, target = points.cuda(), target.cuda()
-    classifier = classifier.eval()
-    pred, _, _ = classifier(points)
-    loss = torch.nn.functional.nll_loss(pred, target)
+    tn, tp, fn, fp = 0, 0, 0, 0
 
-    pred_choice = pred.data.max(1)[1]
-    C2= confusion_matrix(pred_choice.data.cpu().numpy(), target.data.cpu().numpy())
-    correct = C2[0, 0] + C2[1, 1]
-    tn = C2[0, 0]
-    tp = C2[1, 1]
-    fn = C2[1, 0]
-    fp = C2[0, 1]
+    for data in dataloader_test:
+        pc, label, img = data
+        label = label[:, 0]
+        pc = pc.transpose(2, 1)
+        pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+        classifier = classifier.eval()
+        pred, trans, trans_feat = classifier(pc, img)
+        loss = torch.nn.functional.nll_loss(pred, label)
+        if args.feature_transform:
+            loss += feature_transform_regularizer(trans_feat) * 0.001
+
+        pred_choice = pred.data.max(1)[1]
+        C2= confusion_matrix(pred_choice.data.cpu().numpy(), label.data.cpu().numpy())
+        tn += C2[0, 0]
+        tp += C2[1, 1]
+        fn += C2[1, 0]
+        fp += C2[0, 1]
 
     correct = (tn + tp) / (tn+fn+tp+fp)
     mAccu = (tn / (tn+fn)+ tp / (tp+fp)) / 2.0
