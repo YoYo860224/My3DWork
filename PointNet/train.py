@@ -12,15 +12,15 @@ from pointnetX.model import PointNetCls, feature_transform_regularizer
 from pointnetX.dataset import PersonDataset, PersonDataset_Test
 
 blue = lambda x: '\033[94m' + x + '\033[0m'
-keepTrAcc = []
-keepTeAcc = []
+keepTrAccu = []
+keepTeAccu = []
 keepTeloss = []
 keepTrloss = []
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataroot', type=str, default="./data", help='input data root')
-    parser.add_argument('--batchSize', type=int, default=30, help='input batch size')
+    parser.add_argument('--batchSize', type=int, default=20, help='input batch size')
     parser.add_argument('--epochs', type=int, default=5000, help='epochs')
     parser.add_argument('--outf', type=str, default="./pth", help='epochs')
     parser.add_argument('--model', type=str, help='epochs')
@@ -38,7 +38,7 @@ if __name__ == "__main__":
     dataset_test = PersonDataset_Test(args.dataroot)
     dataloader_test = torch.utils.data.DataLoader(
         dataset_test,
-        batch_size=100,
+        batch_size=25,
         shuffle=True,
         num_workers=4)
 
@@ -58,17 +58,17 @@ if __name__ == "__main__":
     classifier.cuda()
 
     # train
-    num_batch = len(dataset) / args.batchSize
+    num_batch = len(dataset) // args.batchSize
     for epoch in range(1, args.epochs + 1):
-        scheduler.step()
         for i, data in enumerate(dataloader, 0):
-            pc, label = data
+            pc, label, img = data
+            tbSize = len(label)
             label = label[:, 0]
             pc = pc.transpose(2, 1)
-            pc, label = pc.cuda(), label.cuda()
+            pc, label, img = pc.cuda(), label.cuda(), img.cuda()
             optimizer.zero_grad()
             classifier = classifier.train()
-            pred, trans, trans_feat = classifier(pc)
+            pred, trans, trans_feat = classifier(pc, img)
             loss = torch.nn.functional.nll_loss(pred, label)
             if args.feature_transform:
                 loss += feature_transform_regularizer(trans_feat) * 0.001
@@ -76,31 +76,41 @@ if __name__ == "__main__":
             optimizer.step()
             pred_choice = pred.data.max(1)[1]
             correct = pred_choice.eq(label.data).cpu().sum()
-            print('[%d: %d/%d] train loss: %f accuracy: %f' % (epoch, i, num_batch, loss.item(), correct.item() / float(args.batchSize)))
+            print('[%5d: %3d/%3d] train loss: %f accuracy: %f' % (epoch, i, num_batch, loss.item(), correct.item() / float(tbSize)))
 
-            if i == 0:
-                keepTrAcc += [correct.item()/float(args.batchSize)]
-                keepTrloss += [loss.item()]
-                j, data = next(enumerate(dataloader_test, 0))
-                points, target = data
-                target = target[:, 0]
-                points = points.transpose(2, 1)
-                points, target = points.cuda(), target.cuda()
-                classifier = classifier.eval()
-                pred, _, _ = classifier(points)
-                loss = torch.nn.functional.nll_loss(pred, target)
-                pred_choice = pred.data.max(1)[1]
-                correct = pred_choice.eq(target.data).cpu().sum()
-                print('[%d: %d/%d] %s loss: %f accuracy: %f' % (epoch, i, num_batch, blue('test'), loss.item(), correct.item()/float(100)))
-                keepTeAcc += [correct.item()/float(100)]
-                keepTeloss += [loss.item()]
+        keepTrAccu += [correct.item() / float(tbSize)]
+        keepTrloss += [loss.item()]
+        
+        # Test
+        t, data = next(enumerate(dataloader_test, 0))
+        pc, label, img = data
+        tbSize = len(label)
+        label = label[:, 0]
+        pc = pc.transpose(2, 1)
+        pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+        optimizer.zero_grad()
+        classifier = classifier.eval()
+        pred, trans, trans_feat = classifier(pc, img)
+        loss = torch.nn.functional.nll_loss(pred, label)
+        if args.feature_transform:
+            loss += feature_transform_regularizer(trans_feat) * 0.001
+        # loss.backward()
+        # optimizer.step()
+        pred_choice = pred.data.max(1)[1]
+        correct = pred_choice.eq(label.data).cpu().sum()
+        print('[%5d:-------->  %s loss: %f accuracy: %f' % (epoch, blue('test'), loss.item(), correct.item() / float(tbSize)))
+
+        keepTeAccu += [correct.item() / float(tbSize)]
+        keepTeloss += [loss.item()]
+        
         torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (args.outf, epoch))
+        scheduler.step()
 
-    # vis
-    plt.ylim(0, 1)
-    plt.plot(keepTrAcc, "b")
-    plt.plot(keepTeAcc, "r")
-    plt.show()
-    plt.plot(keepTrloss, "b")
-    plt.plot(keepTeloss, "r")
-    plt.show()
+        # vis
+        plt.ylim(0, 1)
+        plt.plot(keepTrAccu, "b")
+        plt.plot(keepTeAccu, "r")
+        plt.savefig("./F1.png")
+        plt.plot(keepTrloss, "b")
+        plt.plot(keepTeloss, "r")
+        plt.savefig("./F2.png")

@@ -21,7 +21,7 @@ def RotateZ(pc):
 
     return pc.dot(rz), math.hypot(avgpc[0], avgpc[1])
 
-def GetImage(pc, res=100, sqrSize=200):
+def GetImage(pc, res=100, sqrSize=224):
     pcxyz, dis = RotateZ(pc)
 
     maxXYZ = np.max(pcxyz, 0)

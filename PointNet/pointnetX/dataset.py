@@ -6,6 +6,7 @@ import numpy as np
 import torch
 import torch.utils.data as data
 
+import cv2.cv2 as cv2
 # pragma pylint: disable=maybe-no-member
 
 
@@ -113,17 +114,29 @@ class PersonDataset(data.Dataset):
         filepaths = []
         self.labels = []
         path_np = os.path.join(self.root, "NP")
-        for filename in os.listdir(path_np):
+        for filename in natsort.natsorted(os.listdir(path_np)):
             filepaths += [os.path.join(path_np, filename)]
             self.labels += [0]
         path_p = os.path.join(self.root, "P")
-        for filename in os.listdir(path_p):
+        for filename in natsort.natsorted(os.listdir(path_p)):
             filepaths += [os.path.join(path_p, filename)]
             self.labels += [1]
 
         self.pc = []
         for filepath in filepaths:
             self.pc += [npReadPcd(filepath)]
+
+        filepaths = []
+        path_np = os.path.join(self.root, "NP_img")
+        for filename in natsort.natsorted(os.listdir(path_np)):
+            filepaths += [os.path.join(path_np, filename)]
+        path_p = os.path.join(self.root, "P_img")
+        for filename in natsort.natsorted(os.listdir(path_p)):
+            filepaths += [os.path.join(path_p, filename)]
+
+        self.pcimg = []
+        for filepath in filepaths:
+            self.pcimg += [cv2.imread(filepath)]
 
     def __getitem__(self, index):
         # pc = torch.from_numpy(self.pc[index])
@@ -142,7 +155,8 @@ class PersonDataset(data.Dataset):
 
         pc = torch.from_numpy(point_set)
         label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
-        return pc, label
+        img = torch.from_numpy(self.pcimg[index]).float()
+        return pc, label, img
 
     def __len__(self):
         return len(self.pc)
@@ -154,14 +168,7 @@ class PersonDataset_Test(data.Dataset):
         self.pc = []
         self.data_augmentation = data_augmentation
 
-        filepaths = []
         self.labels = []
-
-        path_t = os.path.join(self.root, "testdata")
-        for filename in os.listdir(path_t):
-            filepaths += [os.path.join(path_t, filename)]
-        filepaths = natsort.natsorted(filepaths)
-
         with open(os.path.join(self.root, "truth_all.txt"), 'r') as f:
             lines = f.readlines()
             for i in lines:
@@ -170,9 +177,24 @@ class PersonDataset_Test(data.Dataset):
                 elif (i) == "1\n":
                     self.labels += [1]
 
+        filepaths = []
+        path_t = os.path.join(self.root, "testdata")
+        for filename in natsort.natsorted(os.listdir(path_t)):
+            filepaths += [os.path.join(path_t, filename)]
+
         self.pc = []
         for filepath in filepaths:
             self.pc += [npReadPcd(filepath)]
+
+        filepaths = []
+        path_t = os.path.join(self.root, "testdata_img")
+        for filename in natsort.natsorted(os.listdir(path_t)):
+            filepaths += [os.path.join(path_t, filename)]
+        
+        self.pcimg = []
+        for filepath in filepaths:
+            self.pcimg += [cv2.imread(filepath)]
+
 
     def __getitem__(self, index):
         # pc = torch.from_numpy(self.pc[index])
@@ -191,7 +213,8 @@ class PersonDataset_Test(data.Dataset):
 
         pc = torch.from_numpy(point_set)
         label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
-        return pc, label
+        img = torch.from_numpy(self.pcimg[index]).float()
+        return pc, label, img
 
     def __len__(self):
         return 1000
