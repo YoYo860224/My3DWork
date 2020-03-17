@@ -111,6 +111,8 @@ if __name__ == "__main__":
         plt.plot(keepTrAccu, "b")
         plt.plot(keepTeAccu, "r")
         plt.savefig("./F1.png")
+        plt.cla()
         plt.plot(keepTrloss, "b")
         plt.plot(keepTeloss, "r")
         plt.savefig("./F2.png")
+        plt.cla()
