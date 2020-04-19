@@ -135,7 +135,7 @@ class PointNetCls(nn.Module):
         super(PointNetCls, self).__init__()
         self.feature_transform = feature_transform
         self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform)
-        self.fc1 = nn.Linear(2024, 512)
+        self.fc1 = nn.Linear(1024, 512)
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, k)
         self.dropout = nn.Dropout(p=0.3)
@@ -143,14 +143,14 @@ class PointNetCls(nn.Module):
         self.bn2 = nn.BatchNorm1d(256)
         self.relu = nn.ReLU()
 
-        self.vgg = models.vgg16(pretrained=True)
+        # self.vgg = models.vgg16(pretrained=True)
 
-    def forward(self, x, img):
-        img = img.permute([0, 3, 1, 2]).float()
-        x2d = self.vgg(img)
+    def forward(self, x):
+        # img = img.permute([0, 3, 1, 2]).float()
+        # x2d = self.vgg(img)
         x, trans, trans_feat = self.feat(x)
-        x = torch.cat((x, x2d), 1)
-        
+        # x = torch.cat((x, x2d), 1)
+
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)

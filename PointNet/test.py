@@ -72,12 +72,12 @@ if __name__ == "__main__":
     CM = np.zeros((3, 3), dtype=np.int)
 
     for data in dataloader_test:
-        pc, label, img = data
+        pc, label, _ = data
         label = label[:, 0]
         pc = pc.transpose(2, 1)
-        pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+        pc, label = pc.cuda(), label.cuda()
         classifier = classifier.eval()
-        pred, trans, trans_feat = classifier(pc, img)
+        pred, trans, trans_feat = classifier(pc)
         loss = torch.nn.functional.nll_loss(pred, label)
         if args.feature_transform:
             loss += feature_transform_regularizer(trans_feat) * 0.001
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         
         pred_List = pred_choice.data.cpu().numpy()
         label_List = label.data.cpu().numpy()
-        CM += np.asarray(confusion_matrix(pred_List, label_List, labels=[0, 1, 2]), dtype=np.int)
+        CM += np.asarray(confusion_matrix(label_List, pred_List, labels=[0, 1, 2]), dtype=np.int)
 
     plot_confusion_matrix(CM, classes=["Others", "Person", "Car"], title="Classification")
     plt.show()
