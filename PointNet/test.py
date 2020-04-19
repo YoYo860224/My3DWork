@@ -86,7 +86,7 @@ if __name__ == "__main__":
         
         pred_List = pred_choice.data.cpu().numpy()
         label_List = label.data.cpu().numpy()
-        CM += np.asarray(confusion_matrix(pred_List, label_List, labels=[0, 1, 2]), dtype=np.int)
+        CM += np.asarray(confusion_matrix(label_List, pred_List, labels=[0, 1, 2]), dtype=np.int)
 
     plot_confusion_matrix(CM, classes=["Others", "Person", "Car"], title="Classification")
     plt.show()
