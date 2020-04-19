@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 from pointnetX.model import PointNetCls, feature_transform_regularizer
 from pointnetX.dataset import PersonDataset, PersonDataset_Test
+from pointnetX.dataset import NPCDataset, NPCDataset_Test
 
 blue = lambda x: '\033[94m' + x + '\033[0m'
 keepTrAccu = []
@@ -28,14 +29,14 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # data
-    dataset = PersonDataset(args.dataroot)
+    dataset = NPCDataset(args.dataroot)
     dataloader = torch.utils.data.DataLoader(
         dataset,
         batch_size=args.batchSize,
         shuffle=True,
         num_workers=4)
 
-    dataset_test = PersonDataset_Test(args.dataroot)
+    dataset_test = NPCDataset_Test(args.dataroot)
     dataloader_test = torch.utils.data.DataLoader(
         dataset_test,
         batch_size=25,
@@ -49,7 +50,7 @@ if __name__ == "__main__":
         pass
 
     # model make
-    classifier = PointNetCls(k=2, feature_transform=args.feature_transform)
+    classifier = PointNetCls(k=3, feature_transform=args.feature_transform)
     if args.model:
         classifier.load_state_dict(torch.load(args.model), feature_transform=args.feature_transform)
 

@@ -15,9 +15,10 @@ def npReadPcd(filename):
     pcloud_np = np.asarray(pcloud.points, dtype=np.float32)
     return pcloud_np
 
+NPC_testSize = 100
 
-class PCDataset(data.Dataset):
-    def __init__(self, root, npoints=50, data_augmentation=True):
+class NPCDataset(data.Dataset):
+    def __init__(self, root, npoints=300, data_augmentation=True):
         self.root = root
         self.npoints = npoints
         self.pc = []
@@ -25,18 +26,67 @@ class PCDataset(data.Dataset):
 
         filepaths = []
         self.labels = []
-        path_c = os.path.join(self.root, "C")
-        for filename in os.listdir(path_c):
-            filepaths += [os.path.join(path_c, filename)]
+
+        s = 0
+        path_n = os.path.join(self.root, "N")
+        for filename in natsort.natsorted(os.listdir(path_n)):
+            if s < NPC_testSize:
+                s += 1
+                continue
+            filepaths += [os.path.join(path_n, filename)]
             self.labels += [0]
+
+        s = 0
         path_p = os.path.join(self.root, "P")
-        for filename in os.listdir(path_p):
+        for filename in natsort.natsorted(os.listdir(path_p)):
+            if s < NPC_testSize:
+                s += 1
+                continue
             filepaths += [os.path.join(path_p, filename)]
             self.labels += [1]
+        
+        s = 0
+        path_c = os.path.join(self.root, "C")
+        for filename in natsort.natsorted(os.listdir(path_c)):
+            if s < NPC_testSize:
+                s += 1
+                continue
+            filepaths += [os.path.join(path_c, filename)]
+            self.labels += [2]
 
         self.pc = []
         for filepath in filepaths:
             self.pc += [npReadPcd(filepath)]
+
+        filepaths = []
+
+        s = 0
+        path_n = os.path.join(self.root, "N_img")
+        for filename in natsort.natsorted(os.listdir(path_n)):
+            if s < NPC_testSize:
+                s += 1
+                continue
+            filepaths += [os.path.join(path_n, filename)]
+        
+        s = 0
+        path_p = os.path.join(self.root, "P_img")
+        for filename in natsort.natsorted(os.listdir(path_p)):
+            if s < NPC_testSize:
+                s += 1
+                continue
+            filepaths += [os.path.join(path_p, filename)]
+
+        s = 0
+        path_c = os.path.join(self.root, "C_img")
+        for filename in natsort.natsorted(os.listdir(path_c)):
+            if s < NPC_testSize:
+                s += 1
+                continue
+            filepaths += [os.path.join(path_c, filename)]
+
+        self.pcimg = []
+        for filepath in filepaths:
+            self.pcimg += [cv2.imread(filepath)]
 
     def __getitem__(self, index):
         # pc = torch.from_numpy(self.pc[index])
@@ -54,14 +104,15 @@ class PCDataset(data.Dataset):
             point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
 
         pc = torch.from_numpy(point_set)
-        label = torch.from_numpy(np.array([self.labels[index]]))
-        return pc, label
+        label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
+        img = torch.from_numpy(self.pcimg[index]).float()
+        return pc, label, img
 
     def __len__(self):
         return len(self.pc)
 
-class PCDataset_Test(data.Dataset):
-    def __init__(self, root, npoints=50, data_augmentation=True):
+class NPCDataset_Test(data.Dataset):
+    def __init__(self, root, npoints=300, data_augmentation=True):
         self.root = root
         self.npoints = npoints
         self.pc = []
@@ -69,18 +120,68 @@ class PCDataset_Test(data.Dataset):
 
         filepaths = []
         self.labels = []
-        path_c = os.path.join(self.root, "CT")
-        for filename in os.listdir(path_c):
-            filepaths += [os.path.join(path_c, filename)]
+
+        s = 0
+        path_n = os.path.join(self.root, "N")
+        for filename in natsort.natsorted(os.listdir(path_n)):
+            if s >= NPC_testSize:
+                break
+            s +=1
+            filepaths += [os.path.join(path_n, filename)]
             self.labels += [0]
-        path_p = os.path.join(self.root, "PT")
-        for filename in os.listdir(path_p):
+
+        s = 0
+        path_p = os.path.join(self.root, "P")
+        for filename in natsort.natsorted(os.listdir(path_p)):
+            if s >= NPC_testSize:
+                break
+            s +=1
             filepaths += [os.path.join(path_p, filename)]
             self.labels += [1]
+        
+        s = 0
+        path_c = os.path.join(self.root, "C")
+        for filename in natsort.natsorted(os.listdir(path_c)):
+            if s >= NPC_testSize:
+                break
+            s +=1
+            filepaths += [os.path.join(path_c, filename)]
+            self.labels += [2]
 
         self.pc = []
         for filepath in filepaths:
             self.pc += [npReadPcd(filepath)]
+
+        filepaths = []
+
+        s = 0
+        path_n = os.path.join(self.root, "N_img")
+        for filename in natsort.natsorted(os.listdir(path_n)):
+            if s >= NPC_testSize:
+                break
+            s +=1
+            filepaths += [os.path.join(path_n, filename)]
+        
+        s = 0
+        path_p = os.path.join(self.root, "P_img")
+        for filename in natsort.natsorted(os.listdir(path_p)):
+            if s >= NPC_testSize:
+                break
+            s +=1
+            filepaths += [os.path.join(path_p, filename)]
+
+        s = 0
+        path_c = os.path.join(self.root, "C_img")
+        for filename in natsort.natsorted(os.listdir(path_c)):
+            if s >= NPC_testSize:
+                break
+            s +=1
+            filepaths += [os.path.join(path_c, filename)]
+
+        self.pcimg = []
+        for filepath in filepaths:
+            self.pcimg += [cv2.imread(filepath)]
+
     def __getitem__(self, index):
         # pc = torch.from_numpy(self.pc[index])
         pc = self.pc[index]
@@ -97,8 +198,9 @@ class PCDataset_Test(data.Dataset):
             point_set += np.random.normal(0, 0.02, size=point_set.shape) # random jitter
 
         pc = torch.from_numpy(point_set)
-        label = torch.from_numpy(np.array([self.labels[index]]))
-        return pc, label
+        label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
+        img = torch.from_numpy(self.pcimg[index]).float()
+        return pc, label, img
 
     def __len__(self):
         return len(self.pc)
