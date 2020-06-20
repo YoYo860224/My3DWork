@@ -14,9 +14,11 @@ import torch
 from pointnetX.model import PointNetCls, feature_transform_regularizer
 from pointnetX.formData import GetTorchInputForPointNet
 
+from Pcd2Img import GetImage
+
 # Build
-classifier = PointNetCls(k=2, feature_transform=False)
-classifier.load_state_dict(torch.load("./pth/cls_model_5000.pth"))
+classifier = PointNetCls(k=3, feature_transform=True)
+classifier.load_state_dict(torch.load("./pth/cls_model_220.pth"))
 classifier.cuda()
 classifier = classifier.eval()
 
@@ -79,12 +81,22 @@ class MyCanvas(vispy.scene.SceneCanvas):
         # Select Cluster
         cluPoints = Getlusters(GoodXYZ, labels, nLabels, nPoints=300)
 
+        print(cluPoints.shape)
+
+        img = []
+        for i in cluPoints:
+            img1, dis = GetImage(i)
+            img += [img1]
+
+        imgs = np.asarray(img)
+
         # Make Data
         point_set = GetTorchInputForPointNet(cluPoints)
         point_set = point_set.cuda()
+        imgs = torch.tensor(imgs).float().cuda()
 
         # Classifier
-        pred, _, _ = classifier(point_set)
+        pred, _, _ = classifier(point_set, imgs)
         pred_choice = pred.data.max(1)[1].cpu().numpy()==1
 
         # Get Person Cluster
@@ -104,7 +116,7 @@ class MyCanvas(vispy.scene.SceneCanvas):
 
 if __name__ == '__main__':
     canvas = MyCanvas()
-    canvas.SetFileRoot("D:\\Downloads\\ntutOutside\\")
+    canvas.SetFileRoot("/media/yoyo/harddisk/NTUT_Bagmap/Kitti.pcdb/")
 
     if sys.flags.interactive != 1:
         vispy.app.run()

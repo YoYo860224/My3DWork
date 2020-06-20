@@ -20,8 +20,8 @@ def GetXYZnRGB(pc, clipMax=-1):
 
 
 class MyCube(vispy.scene.Cube):
-    def __init__(self, minPos, maxPos, parent=None):
-        super().__init__(color=(0, 1, 1, 0.2), parent=parent)
+    def __init__(self, minPos, maxPos, parent=None, c=(0, 1, 1, 0.2)):
+        super().__init__(color=c, parent=parent)
         self.transform = vispy.visuals.transforms.MatrixTransform()
         self.transform.scale((maxPos-minPos))
         self.transform.translate((minPos+maxPos)/2.0)

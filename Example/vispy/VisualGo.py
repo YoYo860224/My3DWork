@@ -22,7 +22,7 @@ def GetPosColor(pc, clipMax=500):
     return pcXYZ, pcCol
 
 # generate data
-pc = ReadPCD_XYZI("D:\\Downloads\\ntutOutside\\0001.pcd")
+pc = ReadPCD_XYZI("/media/yoyo/harddisk/kitti_npc/C/0003.pcd")
 pcxyz, pccol = GetPosColor(pc)
 
 # Make a canvas and add simple view

@@ -46,38 +46,41 @@ def GetImage(pc, res=100, sqrSize=224):
         img1[ty, tx] = (255, 255, 255)
 
     if imH > imW:
-        top, left = round(imH * 0.1), round((1.2 * imH - imW) / 2)
+        left, top = round(imH * 0.1), round((1.2 * imH - imW) / 2)
     else:
-        top, left = round(imW * 0.1), round((1.2 * imW - imH) / 2)
+        left, top = round(imW * 0.1), round((1.2 * imW - imH) / 2)
 
-    img1 = cv2.resize(
-        cv2.copyMakeBorder(img1, top, top, left, left, cv2.BORDER_CONSTANT), 
-        (sqrSize, sqrSize)
-    )
+    img1 = cv2.copyMakeBorder(img1, top, top, left, left, cv2.BORDER_CONSTANT)
+    img1 = cv2.resize(img1, (sqrSize, sqrSize))
 
     return img1, dis
 
-fromPath = "/media/yoyo/harddisk/kitti_personOnly/P/"
-toPath = "/media/yoyo/harddisk/kitti_personOnly/P_img/"
 
-if not os.path.exists(toPath):
-    os.mkdir(toPath)
+if __name__ == "__main__":
+    fromPath = "/media/yoyo/harddisk/kitti_npc/C/"
+    toPath = "/media/yoyo/harddisk/kitti_npc/C_img/"
 
-i = 0
+    if not os.path.exists(toPath):
+        os.mkdir(toPath)
 
-for filename in natsort.natsorted(os.listdir(fromPath)):
-    loadfilepath = os.path.join(fromPath, filename)
-    pc = ReadPCD_XYZ(loadfilepath)
-    img1, dis = GetImage(pc)
+    i = 0
 
-    if (dis > 10):
+    for filename in natsort.natsorted(os.listdir(fromPath)):
+        loadfilepath = os.path.join(fromPath, filename)
+        pc = ReadPCD_XYZ(loadfilepath)
+        img1, dis = GetImage(pc)
+        cv2.threshold(img1, 30, 255, cv2.THRESH_BINARY)
+
+
         img1 = cv2.dilate(img1, np.ones((3, 3)))
-    if (dis > 20):
-        img1 = cv2.dilate(img1, np.ones((3, 3)))
+        if (dis > 10):
+            img1 = cv2.dilate(img1, np.ones((5, 5)))
+        if (dis > 20):
+            img1 = cv2.dilate(img1, np.ones((7, 7)))
 
-    i+=1
-    savename = '{:04d}_{:0>5.2f}.png'.format(i, dis)
-    savefilepath = os.path.join(toPath, savename)
-    cv2.imwrite(savefilepath, img1)
+        i+=1
+        savename = '{:04d}_{:0>5.2f}.png'.format(i, dis)
+        savefilepath = os.path.join(toPath, savename)
+        cv2.imwrite(savefilepath, img1)
 
-    print(loadfilepath, " OK!")
+        print(loadfilepath, " OK!")

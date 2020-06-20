@@ -3,8 +3,8 @@ import natsort
 import numpy as np
 from pypcd import pypcd
 
-fromPath = "/media/yoyo/harddisk/kitti_personOnly/testdata_ori/"
-toPath = "/media/yoyo/harddisk/kitti_personOnly/testdata/"
+fromPath = "/media/yoyo/harddisk/kitti_npc/N_ori"
+toPath = "/media/yoyo/harddisk/kitti_npc/N"
 
 if not os.path.exists(toPath):
     os.mkdir(toPath)
