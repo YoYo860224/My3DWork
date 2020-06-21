@@ -208,7 +208,31 @@ class ProjNet(nn.Module):
         # print(x.shape)
         return x
 
-# class ArtNet(nn.modules):
+class VoxelNet(nn.Module):
+    def __init__(self):
+        super(VoxelNet, self).__init__()
+        self.conv1 = nn.Conv3d(1, 30, (5, 5, 5))
+        self.MaxPool1 = nn.MaxPool3d((2, 2, 2))
+        self.conv2 = nn.Conv3d(30, 30, (5, 5, 5))
+        self.MaxPool2 = nn.MaxPool3d((2, 2, 2))
+        self.dropout = nn.Dropout(p=0.3)
+        self.fc1 = nn.Linear(1920, 1024)
+        self.fc2 = nn.Linear(1024, 512)
+
+    def forward(self, voxel):
+        voxel = self.conv1(voxel)
+        voxel = self.MaxPool1(voxel)
+        voxel = self.conv2(voxel)
+        voxel = self.MaxPool2(voxel)
+        voxel = self.dropout(voxel)
+        voxel = voxel.flatten(start_dim=1, end_dim=-1)
+        voxel = self.fc1(voxel)
+        voxel = self.fc2(voxel)
+
+        return voxel
+
+
+# class ArtNet(nn.Module):
 #     def __init__(self):
 #         super(ArtNet, self).__init__()
 #         self.fc1 = nn.Linear(2059, 1024)
@@ -224,7 +248,8 @@ class PointNetCls(nn.Module):
         super(PointNetCls, self).__init__()
         self.feature_transform = feature_transform
         self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform)
-        self.fc1 = nn.Linear(1024+1000+2509, 512)
+        self.fc1 = nn.Linear(512, 512)
+        # self.fc1 = nn.Linear(1024+1000+2509, 512)
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, k)
         self.dropout = nn.Dropout(p=0.3)
@@ -235,20 +260,24 @@ class PointNetCls(nn.Module):
         self.mobileNet = MobileNet()
         # self.projNet = ProjNet()
         # self.vgg = models.vgg16(pretrained=True)
+        self.voxelNet = VoxelNet()
 
-    def forward(self, x, img, artF):
-        img = img.permute([0, 3, 1, 2]).float()
-        x2d = self.mobileNet(img)
-        # x2d = self.projNet(img)
-        # x2d = self.vgg(img)
-        x, trans, trans_feat = self.feat(x)
-        x = torch.cat([x, x2d, artF], 1)
+    def forward(self, x, img, artF, voxel):
+        voxel = voxel.unsqueeze(1)
+        x = self.voxelNet(voxel)
+        # img = img.permute([0, 3, 1, 2]).float()
+        # x2d = self.mobileNet(img)
+        # # x2d = self.projNet(img)
+        # # x2d = self.vgg(img)
+        # x, trans, trans_feat = self.feat(x)
+        # x = torch.cat([x, x2d, artF], 1)
         
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
-
-        return F.log_softmax(x, dim=1), trans, trans_feat
+        
+        # return F.log_softmax(x, dim=1), trans, trans_feat
+        return F.log_softmax(x, dim=1), 0, 0
 
 class PointNetDenseCls(nn.Module):
     def __init__(self, k = 2, feature_transform=False):

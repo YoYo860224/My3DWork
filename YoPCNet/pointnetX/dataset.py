@@ -28,6 +28,7 @@ class NPCDataset(data.Dataset):
         self.labels = []
         self.pc = []
         self.pcimg = []
+        self.voxels = []
 
         # region pc and label
         filepaths = []
@@ -120,6 +121,45 @@ class NPCDataset(data.Dataset):
             self.artFeature = np.concatenate([artF_N[100:, :], artF_P[100:, :], artF_C[100:, :]])
         # endregion
 
+        # region Voxel
+        filepaths = []
+        s = 0
+        path_n = os.path.join(self.root, "N_voxel")
+        for filename in natsort.natsorted(os.listdir(path_n)):
+            if self.testing and s >= NPC_testSize:
+                break
+            if s < NPC_testSize:
+                s+=1
+                if not self.testing:
+                    continue
+            filepaths += [os.path.join(path_n, filename)]
+
+        s = 0
+        path_p = os.path.join(self.root, "P_voxel")
+        for filename in natsort.natsorted(os.listdir(path_p)):
+            if self.testing and s >= NPC_testSize:
+                break
+            if s < NPC_testSize:
+                s+=1
+                if not self.testing:
+                    continue
+            filepaths += [os.path.join(path_p, filename)]
+        
+        s = 0
+        path_c = os.path.join(self.root, "C_voxel")
+        for filename in natsort.natsorted(os.listdir(path_c)):
+            if self.testing and s >= NPC_testSize:
+                break
+            if s < NPC_testSize:
+                s+=1
+                if not self.testing:
+                    continue
+            filepaths += [os.path.join(path_c, filename)]
+
+        for filepath in filepaths:
+            self.voxels += [np.load(filepath)]
+        # endregion
+
     def __getitem__(self, index):
         pc = self.pc[index]
         choice = np.random.choice(len(pc), self.npoints, replace=True)
@@ -138,7 +178,8 @@ class NPCDataset(data.Dataset):
         label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
         img = torch.from_numpy(self.pcimg[index]).float()
         artFeature = torch.from_numpy(self.artFeature[index]).float()
-        return pc, label, img, artFeature
+        voxel = torch.from_numpy(self.voxels[index]).float()
+        return pc, label, img, artFeature, voxel
 
     def __len__(self):
         return len(self.pc)
