@@ -258,6 +258,8 @@ def getFeatures(pc, img):
 
     feature = np.array([f1, f2, f3], dtype=np.float32)
     feature = np.concatenate([feature, f4, f5, f6, f7, f8, f9, f10, f11, f12, f13, f14, f15])
+    # feature = np.concatenate([feature, f4, f5, f6, f7, f8, f9, f10, f11, f12])
+    # feature = np.concatenate([f13, f14, f15])
     feature = feature.reshape(1, -1)
 
     return feature

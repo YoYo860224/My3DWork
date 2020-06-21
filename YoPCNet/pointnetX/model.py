@@ -247,9 +247,18 @@ class PointNetCls(nn.Module):
     def __init__(self, k=2, feature_transform=False):
         super(PointNetCls, self).__init__()
         self.feature_transform = feature_transform
+        # PointNet 1024
         self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform)
-        self.fc1 = nn.Linear(512, 512)
-        # self.fc1 = nn.Linear(1024+1000+2509, 512)
+
+        # # Voxel 512
+        # self.voxelNet = VoxelNet()
+
+        # # Img 1000
+        # self.mobileNet = MobileNet()
+        # self.vgg = models.vgg16(pretrained=True)
+        
+        # Classfication
+        self.fc1 = nn.Linear(1024, 512)
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, k)
         self.dropout = nn.Dropout(p=0.3)
@@ -257,27 +266,30 @@ class PointNetCls(nn.Module):
         self.bn2 = nn.BatchNorm1d(256)
         self.relu = nn.ReLU()
 
-        self.mobileNet = MobileNet()
-        # self.projNet = ProjNet()
-        # self.vgg = models.vgg16(pretrained=True)
-        self.voxelNet = VoxelNet()
-
     def forward(self, x, img, artF, voxel):
-        voxel = voxel.unsqueeze(1)
-        x = self.voxelNet(voxel)
+        # ==> 1024
+        pd, trans, trans_feat = self.feat(x)
+
+        # ==> 512
+        # voxel = voxel.unsqueeze(1)
+        # vd = self.voxelNet(voxel)
+
+        # ==> 1000
         # img = img.permute([0, 3, 1, 2]).float()
         # x2d = self.mobileNet(img)
-        # # x2d = self.projNet(img)
-        # # x2d = self.vgg(img)
-        # x, trans, trans_feat = self.feat(x)
-        # x = torch.cat([x, x2d, artF], 1)
-        
+        # x2d = self.vgg(img)
+
+        # ==> Cat
+        x = pd
+        # x = torch.cat([pd, x2d, artF], 1)
+
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
-        
-        # return F.log_softmax(x, dim=1), trans, trans_feat
-        return F.log_softmax(x, dim=1), 0, 0
+
+        return F.log_softmax(x, dim=1), trans, trans_feat
+        # return F.log_softmax(x, dim=1), 0, 0
+
 
 class PointNetDenseCls(nn.Module):
     def __init__(self, k = 2, feature_transform=False):
