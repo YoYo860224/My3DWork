@@ -30,21 +30,23 @@ def plot_confusion_matrix(cm, classes,
     print(cm)
 
     plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
+    plt.title(title, fontsize=15)
     plt.colorbar()
     tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    plt.xticks(tick_marks, classes, rotation=45, fontsize=12)
+    plt.yticks(tick_marks, classes, fontsize=12)
 
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
         plt.text(j, i, format(cm[i, j], fmt),
                  horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
+                 verticalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black",
+                 fontsize=30)
 
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    plt.ylabel('True label', fontsize=17)
+    plt.xlabel('Predicted label', fontsize=17)
     plt.tight_layout()
 
 
@@ -71,12 +73,12 @@ if __name__ == "__main__":
     CM = np.zeros((3, 3), dtype=np.int)
 
     for data in dataloader_test:
-        pc, label, img, _ = data
+        pc, label, img, artF = data
         label = label[:, 0]
         pc = pc.transpose(2, 1)
-        pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+        pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
         classifier = classifier.eval()
-        pred, trans, trans_feat = classifier(pc, img)
+        pred, trans, trans_feat = classifier(pc, img, artF)
         loss = torch.nn.functional.nll_loss(pred, label)
         if args.feature_transform:
             loss += feature_transform_regularizer(trans_feat) * 0.001

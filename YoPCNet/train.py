@@ -61,14 +61,14 @@ if __name__ == "__main__":
     num_batch = len(dataset) // args.batchSize
     for epoch in range(1, args.epochs + 1):
         for i, data in enumerate(dataloader, 0):
-            pc, label, img, _ = data
+            pc, label, img, artF = data
             tbSize = len(label)
             label = label[:, 0]
             pc = pc.transpose(2, 1)
-            pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+            pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
             optimizer.zero_grad()
             classifier = classifier.train()
-            pred, trans, trans_feat = classifier(pc, img)
+            pred, trans, trans_feat = classifier(pc, img, artF)
             loss = torch.nn.functional.nll_loss(pred, label)
             if args.feature_transform:
                 loss += feature_transform_regularizer(trans_feat) * 0.001
@@ -76,21 +76,21 @@ if __name__ == "__main__":
             optimizer.step()
             pred_choice = pred.data.max(1)[1]
             correct = pred_choice.eq(label.data).cpu().sum()
-            print('[%5d: %3d/%3d] train loss: %f accuracy: %f' % (epoch, i, num_batch, loss.item(), correct.item() / float(tbSize)))
+            print('[%5d: %3d/%3d] train loss: %f accuracy: %f' % (epoch, i, num_batch, loss.item(), correct.item() / float(tbSize)), end='\r')
 
         keepTrAccu += [correct.item() / float(tbSize)]
         keepTrloss += [loss.item()]
         
         # Test
         t, data = next(enumerate(dataloader_test, 0))
-        pc, label, img, _ = data
+        pc, label, img, artF = data
         tbSize = len(label)
         label = label[:, 0]
         pc = pc.transpose(2, 1)
-        pc, label, img = pc.cuda(), label.cuda(), img.cuda()
+        pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
         optimizer.zero_grad()
         classifier = classifier.eval()
-        pred, trans, trans_feat = classifier(pc, img)
+        pred, trans, trans_feat = classifier(pc, img, artF)
         loss = torch.nn.functional.nll_loss(pred, label)
         if args.feature_transform:
             loss += feature_transform_regularizer(trans_feat) * 0.001

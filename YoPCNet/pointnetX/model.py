@@ -15,7 +15,7 @@ import torchvision.models as models
 class STN3d(nn.Module):
     def __init__(self):
         super(STN3d, self).__init__()
-        self.conv1 = torch.nn.Conv1d(4, 64, 1)
+        self.conv1 = torch.nn.Conv1d(3, 64, 1)
         self.conv2 = torch.nn.Conv1d(64, 128, 1)
         self.conv3 = torch.nn.Conv1d(128, 1024, 1)
         self.fc1 = nn.Linear(1024, 512)
@@ -91,7 +91,7 @@ class PointNetfeat(nn.Module):
     def __init__(self, global_feat = True, feature_transform = False):
         super(PointNetfeat, self).__init__()
         self.stn = STN3d()
-        self.conv1 = torch.nn.Conv1d(3, 64, 1)
+        self.conv1 = torch.nn.Conv1d(4, 64, 1)
         self.conv2 = torch.nn.Conv1d(64, 128, 1)
         self.conv3 = torch.nn.Conv1d(128, 1024, 1)
         self.bn1 = nn.BatchNorm1d(64)
@@ -104,10 +104,13 @@ class PointNetfeat(nn.Module):
 
     def forward(self, x):
         n_pts = x.size()[2]
-        trans = self.stn(x)
-        x = x.transpose(2, 1)
-        x = torch.bmm(x, trans)
-        x = x.transpose(2, 1)
+        xPos = x[:, 0:3, :]
+        xIns = x[:, 3:4, :]
+        trans = self.stn(xPos)
+        xPos = xPos.transpose(2, 1)
+        xPos = torch.bmm(xPos, trans)
+        xPos = xPos.transpose(2, 1)
+        x = torch.cat([xPos, xIns], dim=1)
         x = F.relu(self.bn1(self.conv1(x)))
 
         if self.feature_transform:
@@ -205,12 +208,23 @@ class ProjNet(nn.Module):
         # print(x.shape)
         return x
 
+# class ArtNet(nn.modules):
+#     def __init__(self):
+#         super(ArtNet, self).__init__()
+#         self.fc1 = nn.Linear(2059, 1024)
+#         self.fc2 = nn.Linear(1024, 512)
+#         self.bn1 = nn.BatchNorm1d(512)
+#         self.bn2 = nn.BatchNorm1d(256)
+
+#     def forward(self, feture):
+
+
 class PointNetCls(nn.Module):
     def __init__(self, k=2, feature_transform=False):
         super(PointNetCls, self).__init__()
         self.feature_transform = feature_transform
         self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform)
-        self.fc1 = nn.Linear(2024, 512)
+        self.fc1 = nn.Linear(1024+1000+2509, 512)
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, k)
         self.dropout = nn.Dropout(p=0.3)
@@ -219,16 +233,16 @@ class PointNetCls(nn.Module):
         self.relu = nn.ReLU()
 
         self.mobileNet = MobileNet()
-        self.projNet = ProjNet()
+        # self.projNet = ProjNet()
         # self.vgg = models.vgg16(pretrained=True)
 
-    def forward(self, x, img):
+    def forward(self, x, img, artF):
         img = img.permute([0, 3, 1, 2]).float()
         x2d = self.mobileNet(img)
         # x2d = self.projNet(img)
         # x2d = self.vgg(img)
         x, trans, trans_feat = self.feat(x)
-        x = torch.cat((x, x2d), 1)
+        x = torch.cat([x, x2d, artF], 1)
         
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
