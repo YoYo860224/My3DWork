@@ -179,35 +179,6 @@ class MobileNet(nn.Module):
         x = self.fc(x)
         return x
 
-class ProjNet(nn.Module):
-    def __init__(self):
-        super(ProjNet, self).__init__()
-        self.layers = []
-        self.layers += [nn.Conv2d(in_channels=3, out_channels= 32, kernel_size=3, stride=1, padding=1, dilation=1)]
-        self.layers += [nn.Conv2d(in_channels=32, out_channels= 32, kernel_size=3, stride=1, padding=1, dilation=1)]
-        self.layers += [nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1)]
-        self.layers += [nn.Conv2d(in_channels=32, out_channels= 64, kernel_size=3, stride=1, padding=1, dilation=1)]
-        self.layers += [nn.Conv2d(in_channels=64, out_channels= 64, kernel_size=3, stride=1, padding=1, dilation=1)]
-        self.layers += [nn.MaxPool2d(kernel_size=4, stride=4, padding=0, dilation=1)]
-        self.layers += [nn.Conv2d(in_channels=64, out_channels= 32, kernel_size=3, stride=1, padding=1, dilation=1)]
-        self.layers += [nn.Conv2d(in_channels=32, out_channels= 32, kernel_size=3, stride=1, padding=1, dilation=1)]
-        self.layers += [nn.MaxPool2d(kernel_size=2, stride=2, padding=0, dilation=1)]
-        self.layers += [nn.Conv2d(in_channels=32, out_channels= 16, kernel_size=3, stride=1, padding=1, dilation=1)]
-        self.layers += [nn.Conv2d(in_channels=16, out_channels= 16, kernel_size=3, stride=1, padding=1, dilation=1)]
-        self.layers = nn.ModuleList(self.layers)
-        self.fc1 = nn.Linear(3136, 1536)
-        self.fc2 = nn.Linear(1536, 1000)
-    def forward(self, img):
-        x = img
-        for l in self.layers:
-            x = l(x)
-            # print(x.shape)
-        x = x.flatten(start_dim=1, end_dim=-1)
-        x = self.fc1(x)
-        x = self.fc2(x)
-        # print(x.shape)
-        return x
-
 class VoxelNet(nn.Module):
     def __init__(self):
         super(VoxelNet, self).__init__()
@@ -230,18 +201,6 @@ class VoxelNet(nn.Module):
         voxel = self.fc2(voxel)
 
         return voxel
-
-
-# class ArtNet(nn.Module):
-#     def __init__(self):
-#         super(ArtNet, self).__init__()
-#         self.fc1 = nn.Linear(2059, 1024)
-#         self.fc2 = nn.Linear(1024, 512)
-#         self.bn1 = nn.BatchNorm1d(512)
-#         self.bn2 = nn.BatchNorm1d(256)
-
-#     def forward(self, feture):
-
 
 class PointNetCls(nn.Module):
     def __init__(self, k=2, feature_transform=False):
@@ -268,7 +227,7 @@ class PointNetCls(nn.Module):
 
     def forward(self, x, img, artF, voxel):
         # ==> 1024
-        pd, trans, trans_feat = self.feat(x)
+        pf, trans, trans_feat = self.feat(x)
 
         # ==> 512
         # voxel = voxel.unsqueeze(1)
@@ -280,8 +239,8 @@ class PointNetCls(nn.Module):
         # x2d = self.vgg(img)
 
         # ==> Cat
-        x = pd
-        # x = torch.cat([pd, x2d, artF], 1)
+        x = pf
+        # x = torch.cat([pf, x2d, artF], 1)
 
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
@@ -289,7 +248,6 @@ class PointNetCls(nn.Module):
 
         return F.log_softmax(x, dim=1), trans, trans_feat
         # return F.log_softmax(x, dim=1), 0, 0
-
 
 class PointNetDenseCls(nn.Module):
     def __init__(self, k = 2, feature_transform=False):
@@ -325,32 +283,3 @@ def feature_transform_regularizer(trans):
         I = I.cuda()    
     loss = torch.mean(torch.norm(torch.bmm(trans, trans.transpose(2,1)) - I, p=2, dim=(1, 2)))
     return loss
-
-if __name__ == '__main__':
-    sim_data = Variable(torch.rand(32,3,2500))
-    trans = STN3d()
-    out = trans(sim_data)
-    print('stn', out.size())
-    print('loss', feature_transform_regularizer(out))
-
-    sim_data_64d = Variable(torch.rand(32, 64, 2500))
-    trans = STNkd(k=64)
-    out = trans(sim_data_64d)
-    print('stn64d', out.size())
-    print('loss', feature_transform_regularizer(out))
-
-    pointfeat = PointNetfeat(global_feat=True)
-    out, _, _ = pointfeat(sim_data)
-    print('global feat', out.size())
-
-    pointfeat = PointNetfeat(global_feat=False)
-    out, _, _ = pointfeat(sim_data)
-    print('point feat', out.size())
-
-    cls = PointNetCls(k = 5)
-    out, _, _ = cls(sim_data)
-    print('class', out.size())
-
-    seg = PointNetDenseCls(k = 3)
-    out, _, _ = seg(sim_data)
-    print('seg', out.size())

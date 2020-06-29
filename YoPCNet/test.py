@@ -9,6 +9,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
+import cv2.cv2 as cv2
 
 from pointnetX.model import PointNetCls, feature_transform_regularizer
 from pointnetX.dataset import NPCDataset
@@ -73,42 +74,34 @@ if __name__ == "__main__":
 
     CM = np.zeros((3, 3), dtype=np.int)
     tlist = []
+    failNum = 0
     for data in dataloader_test:
         t = time.time()
-        # pc, label, img, = data
-        # pc, label, img, artF = data
         pc, label, img, artF, voxel = data
         label = label[:, 0]
         pc = pc.transpose(2, 1)
-        # pc, label, img = pc.cuda(), label.cuda(), img.cuda()
-        # pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
         pc, label, img, artF, voxel = pc.cuda(), label.cuda(), img.cuda(), artF.cuda(), voxel.cuda()
         classifier = classifier.eval()
-        # pred, trans, trans_feat = classifier(pc, img)
-        # pred, trans, trans_feat = classifier(pc, img, artF)
         pred, trans, trans_feat = classifier(pc, img, artF, voxel)
         loss = torch.nn.functional.nll_loss(pred, label)
-        # if args.feature_transform:
-        #     loss += feature_transform_regularizer(trans_feat) * 0.001
+        if args.feature_transform:
+            loss += feature_transform_regularizer(trans_feat) * 0.001
 
         pred_choice = pred.data.max(1)[1]
         
         pred_List = pred_choice.data.cpu().numpy()
         label_List = label.data.cpu().numpy()
         tlist.append(time.time()-t)
-
         CM += np.asarray(confusion_matrix(label_List, pred_List, labels=[0, 1, 2]), dtype=np.int)
+
+        failList = (pred_List != label_List)
+        for i in range(len(failList)):
+            if failList[i]==True:
+                failImg = img[i].cpu().numpy()
+                cv2.imwrite("{0}__({1}, {2}).png".format(failNum, pred_List[i], label_List[i]), failImg)
+                failNum+=1
 
     print("Spent time per 20 objs.(out first): ", sum(tlist[1:]) / 280.0 * 20.0)
     print("Accu: ", (CM[0, 0]+CM[1, 1]+CM[2, 2])/300.0)
     plot_confusion_matrix(CM, classes=["Others", "Person", "Car"], title="Classification")
     plt.show()
-
-    # tn = CM[0, 0]
-    # tp = CM[1, 1]
-    # fn = CM[1, 0]
-    # fp = CM[0, 1]
-    # correct = (tn + tp) / (tn+fn+tp+fp)
-    # mAccu = (tn / (tn+fn)+ tp / (tp+fp)) / 2.0
-    # recall = tp / (tp+fp)
-    # print('loss: %f\naccuracy: %f\nmAccu: %f\nrecall: %f' % (loss.item(), correct, mAccu, recall))

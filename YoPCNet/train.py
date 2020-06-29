@@ -2,7 +2,6 @@ import os
 import math
 import argparse
 import numpy as np
-import open3d
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
@@ -27,7 +26,7 @@ if __name__ == "__main__":
     parser.add_argument('--feature_transform', action='store_true', help="use feature transform")
     args = parser.parse_args()
 
-    # data
+    print("Prepare Dataset.")
     dataset = NPCDataset(args.dataroot)
     dataloader = torch.utils.data.DataLoader(
         dataset,
@@ -42,13 +41,13 @@ if __name__ == "__main__":
         shuffle=True,
         num_workers=4)
 
-    # model save
     try:
+        print("mkdir ", args.outf)
         os.makedirs(args.outf)
     except OSError:
         pass
 
-    # model make
+    print("Make model.")
     classifier = PointNetCls(k=3, feature_transform=args.feature_transform)
     if args.model:
         classifier.load_state_dict(torch.load(args.model), feature_transform=args.feature_transform)
@@ -57,27 +56,22 @@ if __name__ == "__main__":
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
     classifier.cuda()
 
+    print("Training start.")
     # train
     num_batch = len(dataset) // args.batchSize
     for epoch in range(1, args.epochs + 1):
         for i, data in enumerate(dataloader, 0):
-            # pc, label, img, = data
-            # pc, label, img, artF = data
             pc, label, img, artF, voxel = data
             tbSize = len(label)
             label = label[:, 0]
             pc = pc.transpose(2, 1)
-            # pc, label, img = pc.cuda(), label.cuda(), img.cuda()
-            # pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
             pc, label, img, artF, voxel = pc.cuda(), label.cuda(), img.cuda(), artF.cuda(), voxel.cuda()
             optimizer.zero_grad()
             classifier = classifier.train()
-            # pred, trans, trans_feat = classifier(pc, img)
-            # pred, trans, trans_feat = classifier(pc, img, artF)
             pred, trans, trans_feat = classifier(pc, img, artF, voxel)
             loss = torch.nn.functional.nll_loss(pred, label)
-            # if args.feature_transform:
-            #     loss += feature_transform_regularizer(trans_feat) * 0.001
+            if args.feature_transform:
+                loss += feature_transform_regularizer(trans_feat) * 0.001
             loss.backward()
             optimizer.step()
             pred_choice = pred.data.max(1)[1]
@@ -89,25 +83,16 @@ if __name__ == "__main__":
         
         # Test
         t, data = next(enumerate(dataloader_test, 0))
-        # pc, label, img, = data
-        # pc, label, img, artF = data
         pc, label, img, artF, voxel = data
         tbSize = len(label)
         label = label[:, 0]
         pc = pc.transpose(2, 1)
-        # pc, label, img = pc.cuda(), label.cuda(), img.cuda()
-        # pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
         pc, label, img, artF, voxel = pc.cuda(), label.cuda(), img.cuda(), artF.cuda(), voxel.cuda()
-        optimizer.zero_grad()
         classifier = classifier.eval()
-        # pred, trans, trans_feat = classifier(pc, img)
-        # pred, trans, trans_feat = classifier(pc, img, artF)
         pred, trans, trans_feat = classifier(pc, img, artF, voxel)
         loss = torch.nn.functional.nll_loss(pred, label)
         if args.feature_transform:
             loss += feature_transform_regularizer(trans_feat) * 0.001
-        # loss.backward()
-        # optimizer.step()
         pred_choice = pred.data.max(1)[1]
         correct = pred_choice.eq(label.data).cpu().sum()
         print('[%5d:-------->  %s loss: %f accuracy: %f' % (epoch, blue('test'), loss.item(), correct.item() / float(tbSize)))
