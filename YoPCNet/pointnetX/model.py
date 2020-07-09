@@ -49,7 +49,6 @@ class STN3d(nn.Module):
         x = x.view(-1, 3, 3)
         return x
 
-
 class STNkd(nn.Module):
     def __init__(self, k=64):
         super(STNkd, self).__init__()
@@ -92,7 +91,7 @@ class PointNetfeat(nn.Module):
     def __init__(self, global_feat = True, feature_transform = False):
         super(PointNetfeat, self).__init__()
         self.stn = STN3d()
-        self.conv1 = torch.nn.Conv1d(3, 64, 1)
+        self.conv1 = torch.nn.Conv1d(4, 64, 1)
         self.conv2 = torch.nn.Conv1d(64, 128, 1)
         self.conv3 = torch.nn.Conv1d(128, 1024, 1)
         self.bn1 = nn.BatchNorm1d(64)
@@ -105,10 +104,13 @@ class PointNetfeat(nn.Module):
 
     def forward(self, x):
         n_pts = x.size()[2]
-        trans = self.stn(x)
-        x = x.transpose(2, 1)
-        x = torch.bmm(x, trans)
-        x = x.transpose(2, 1)
+        xPos = x[:, 0:3, :]
+        xIns = x[:, 3:4, :]
+        trans = self.stn(xPos)
+        xPos = xPos.transpose(2, 1)
+        xPos = torch.bmm(xPos, trans)
+        xPos = xPos.transpose(2, 1)
+        x = torch.cat([xPos, xIns], dim=1)
         x = F.relu(self.bn1(self.conv1(x)))
 
         if self.feature_transform:
@@ -130,12 +132,92 @@ class PointNetfeat(nn.Module):
             x = x.view(-1, 1024, 1).repeat(1, 1, n_pts)
             return torch.cat([x, pointfeat], 1), trans, trans_feat
 
+class MobileNet(nn.Module):
+    def __init__(self):
+        super(MobileNet, self).__init__()
+
+        def conv_bn(inp, oup, stride):
+            return nn.Sequential(
+                nn.Conv2d(inp, oup, 3, stride, 1, bias=False),
+                nn.BatchNorm2d(oup),
+                nn.ReLU(inplace=True)
+            )
+
+        def conv_dw(inp, oup, stride):
+            return nn.Sequential(
+                nn.Conv2d(inp, inp, 3, stride, 1, groups=inp, bias=False),
+                nn.BatchNorm2d(inp),
+                nn.ReLU(inplace=True),
+    
+                nn.Conv2d(inp, oup, 1, 1, 0, bias=False),
+                nn.BatchNorm2d(oup),
+                nn.ReLU(inplace=True),
+            )
+
+        self.model = nn.Sequential(
+            conv_bn(  3,  32, 2), 
+            conv_dw( 32,  64, 1),
+            conv_dw( 64, 128, 2),
+            conv_dw(128, 128, 1),
+            conv_dw(128, 256, 2),
+            conv_dw(256, 256, 1),
+            conv_dw(256, 512, 2),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 512, 1),
+            conv_dw(512, 1024, 2),
+            conv_dw(1024, 1024, 1),
+            nn.AvgPool2d(7),
+        )
+        self.fc = nn.Linear(1024, 1000)
+
+    def forward(self, x):
+        x = self.model(x)
+        x = x.view(-1, 1024)
+        x = self.fc(x)
+        return x
+
+class VoxelNet(nn.Module):
+    def __init__(self):
+        super(VoxelNet, self).__init__()
+        self.conv1 = nn.Conv3d(1, 30, (5, 5, 5))
+        self.MaxPool1 = nn.MaxPool3d((2, 2, 2))
+        self.conv2 = nn.Conv3d(30, 30, (5, 5, 5))
+        self.MaxPool2 = nn.MaxPool3d((2, 2, 2))
+        self.dropout = nn.Dropout(p=0.3)
+        self.fc1 = nn.Linear(1920, 1024)
+        self.fc2 = nn.Linear(1024, 512)
+
+    def forward(self, voxel):
+        voxel = self.conv1(voxel)
+        voxel = self.MaxPool1(voxel)
+        voxel = self.conv2(voxel)
+        voxel = self.MaxPool2(voxel)
+        voxel = self.dropout(voxel)
+        voxel = voxel.flatten(start_dim=1, end_dim=-1)
+        voxel = self.fc1(voxel)
+        voxel = self.fc2(voxel)
+
+        return voxel
+
 class PointNetCls(nn.Module):
     def __init__(self, k=2, feature_transform=False):
         super(PointNetCls, self).__init__()
         self.feature_transform = feature_transform
+        # PointNet 1024
         self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform)
-        self.fc1 = nn.Linear(2024, 512)
+
+        # # Voxel 512
+        # self.voxelNet = VoxelNet()
+
+        # # Img 1000
+        # self.mobileNet = MobileNet()
+        # self.vgg = models.vgg16(pretrained=True)
+        
+        # Classfication
+        self.fc1 = nn.Linear(1024, 512)
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, k)
         self.dropout = nn.Dropout(p=0.3)
@@ -143,20 +225,29 @@ class PointNetCls(nn.Module):
         self.bn2 = nn.BatchNorm1d(256)
         self.relu = nn.ReLU()
 
-        self.vgg = models.vgg16(pretrained=True)
+    def forward(self, x, img, artF, voxel):
+        # ==> 1024
+        pf, trans, trans_feat = self.feat(x)
 
-    def forward(self, x, img):
-        img = img.permute([0, 3, 1, 2]).float()
-        x2d = self.vgg(img)
-        x, trans, trans_feat = self.feat(x)
-        x = torch.cat((x, x2d), 1)
-        
+        # ==> 512
+        # voxel = voxel.unsqueeze(1)
+        # vd = self.voxelNet(voxel)
+
+        # ==> 1000
+        # img = img.permute([0, 3, 1, 2]).float()
+        # x2d = self.mobileNet(img)
+        # x2d = self.vgg(img)
+
+        # ==> Cat
+        x = pf
+        # x = torch.cat([pf, x2d, artF], 1)
+
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
 
         return F.log_softmax(x, dim=1), trans, trans_feat
-
+        # return F.log_softmax(x, dim=1), 0, 0
 
 class PointNetDenseCls(nn.Module):
     def __init__(self, k = 2, feature_transform=False):
@@ -192,32 +283,3 @@ def feature_transform_regularizer(trans):
         I = I.cuda()    
     loss = torch.mean(torch.norm(torch.bmm(trans, trans.transpose(2,1)) - I, p=2, dim=(1, 2)))
     return loss
-
-if __name__ == '__main__':
-    sim_data = Variable(torch.rand(32,3,2500))
-    trans = STN3d()
-    out = trans(sim_data)
-    print('stn', out.size())
-    print('loss', feature_transform_regularizer(out))
-
-    sim_data_64d = Variable(torch.rand(32, 64, 2500))
-    trans = STNkd(k=64)
-    out = trans(sim_data_64d)
-    print('stn64d', out.size())
-    print('loss', feature_transform_regularizer(out))
-
-    pointfeat = PointNetfeat(global_feat=True)
-    out, _, _ = pointfeat(sim_data)
-    print('global feat', out.size())
-
-    pointfeat = PointNetfeat(global_feat=False)
-    out, _, _ = pointfeat(sim_data)
-    print('point feat', out.size())
-
-    cls = PointNetCls(k = 5)
-    out, _, _ = cls(sim_data)
-    print('class', out.size())
-
-    seg = PointNetDenseCls(k = 3)
-    out, _, _ = seg(sim_data)
-    print('seg', out.size())

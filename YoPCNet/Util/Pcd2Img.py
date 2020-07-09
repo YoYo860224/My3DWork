@@ -7,11 +7,6 @@ import cv2.cv2 as cv2
 from pypcd import pypcd
 from PcdRead import ReadPCD_XYZI
 
-# def ReadPCD_XYZ(filename):
-#     pcdata = pypcd.PointCloud.from_path(filename)
-#     pc = np.asarray(pcdata.pc_data[['x', 'y', 'z']].tolist(), dtype=float)
-#     return pc
-
 def RotateZ(pc):
     avgpc = np.average(pc, 0)
     theta = math.atan2(avgpc[0], avgpc[1])
@@ -113,4 +108,4 @@ if __name__ == "__main__":
         savefilepath = os.path.join(toPath, savename)
         cv2.imwrite(savefilepath, img)
 
-        print(loadfilepath, " OK!")
+        print(loadfilepath, " OK!", end="\r")
