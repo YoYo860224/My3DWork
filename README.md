@@ -56,6 +56,7 @@ pip install vispy
 ```
 
 # Voxel
+```
 [    1:-------->  test loss: 1.225591 accuracy: 0.280000
 [    2:-------->  test loss: 1.247581 accuracy: 0.320000
 [    3:-------->  test loss: 1.209187 accuracy: 0.320000
@@ -96,8 +97,10 @@ pip install vispy
 [   38:-------->  test loss: 0.391715 accuracy: 0.880000
 [   39:-------->  test loss: 0.474680 accuracy: 0.760000
 [   40:-------->  test loss: 0.294882 accuracy: 0.920000
+```
 
 # VGG
+```
 [    1:-------->  test loss: 0.155816 accuracy: 0.920000
 [    2:-------->  test loss: 0.042164 accuracy: 1.000000
 [    3:-------->  test loss: 0.023284 accuracy: 1.000000
@@ -113,8 +116,10 @@ pip install vispy
 [   13:-------->  test loss: 0.005939 accuracy: 1.000000
 [   14:-------->  test loss: 0.026671 accuracy: 1.000000
 [   15:-------->  test loss: 0.077094 accuracy: 1.000000
+```
 
 # MobileNet
+```
 [    1:-------->  test loss: 0.429068 accuracy: 0.760000
 [    2:-------->  test loss: 0.762893 accuracy: 0.680000
 [    3:-------->  test loss: 0.367044 accuracy: 0.840000
@@ -155,8 +160,10 @@ pip install vispy
 [   38:-------->  test loss: 0.022908 accuracy: 1.000000
 [   39:-------->  test loss: 0.259224 accuracy: 0.920000
 [   40:-------->  test loss: 0.131084 accuracy: 0.920000
+```
 
 # ArtF 2D
+```
 [    1:-------->  test loss: 0.425788 accuracy: 0.880000
 [    2:-------->  test loss: 0.577803 accuracy: 0.760000
 [    3:-------->  test loss: 0.443276 accuracy: 0.800000
@@ -197,8 +204,10 @@ pip install vispy
 [   38:-------->  test loss: 0.519525 accuracy: 0.840000
 [   39:-------->  test loss: 0.394145 accuracy: 0.880000
 [   40:-------->  test loss: 0.087132 accuracy: 1.000000
+```
 
 # ArtF 3D
+```
 [    1:-------->  test loss: 0.517710 accuracy: 0.880000
 [    2:-------->  test loss: 0.266098 accuracy: 1.000000
 [    3:-------->  test loss: 0.197187 accuracy: 1.000000
@@ -239,8 +248,10 @@ pip install vispy
 [   38:-------->  test loss: 0.177611 accuracy: 0.920000
 [   39:-------->  test loss: 0.156480 accuracy: 0.920000
 [   40:-------->  test loss: 0.312404 accuracy: 0.920000
+```
 
 # ArtF
+```
 [    1:-------->  test loss: 0.229278 accuracy: 0.960000
 [    2:-------->  test loss: 0.208304 accuracy: 0.960000
 [    3:-------->  test loss: 0.496998 accuracy: 0.760000
@@ -281,9 +292,10 @@ pip install vispy
 [   38:-------->  test loss: 0.245434 accuracy: 0.960000
 [   39:-------->  test loss: 0.245927 accuracy: 0.880000
 [   40:-------->  test loss: 0.322592 accuracy: 0.840000
-
+```
 
 # 3D +MB
+```
 [    1:-------->  test loss: 0.331526 accuracy: 0.920000
 [    2:-------->  test loss: 0.132959 accuracy: 0.960000
 [    3:-------->  test loss: 0.187060 accuracy: 0.960000
@@ -324,8 +336,10 @@ pip install vispy
 [   38:-------->  test loss: 0.043085 accuracy: 1.000000
 [   39:-------->  test loss: 0.257528 accuracy: 0.920000
 [   40:-------->  test loss: 0.061373 accuracy: 0.960000
+```
 
 # 2D + PN
+```
 [    1:-------->  test loss: 0.460896 accuracy: 0.840000
 [    2:-------->  test loss: 0.241917 accuracy: 0.920000
 [    3:-------->  test loss: 0.455186 accuracy: 0.880000
@@ -366,8 +380,10 @@ pip install vispy
 [   38:-------->  test loss: 0.118282 accuracy: 0.960000
 [   39:-------->  test loss: 0.027282 accuracy: 1.000000
 [   40:-------->  test loss: 0.151384 accuracy: 0.920000
+```
 
 # ALL + MB
+```
 [    1:-------->  test loss: 0.348014 accuracy: 0.880000
 [    2:-------->  test loss: 0.437063 accuracy: 0.800000
 [    3:-------->  test loss: 0.249724 accuracy: 0.920000
@@ -408,8 +424,10 @@ pip install vispy
 [   38:-------->  test loss: 0.325086 accuracy: 0.960000
 [   39:-------->  test loss: 0.110395 accuracy: 0.960000
 [   40:-------->  test loss: 0.277764 accuracy: 0.920000
+```
 
 # ALL + PN
+```
 [    1:-------->  test loss: 0.227941 accuracy: 0.920000
 [    2:-------->  test loss: 0.378732 accuracy: 0.880000
 [    3:-------->  test loss: 0.210927 accuracy: 0.960000
@@ -450,3 +468,4 @@ pip install vispy
 [   38:-------->  test loss: 0.016257 accuracy: 1.000000
 [   39:-------->  test loss: 0.025536 accuracy: 1.000000
 [   40:-------->  test loss: 0.176788 accuracy: 0.960000
+```
