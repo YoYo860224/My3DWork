@@ -9,7 +9,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
-import cv2.cv2 as cv2
+import cv2
 
 from pointnetX.model import PointNetCls, feature_transform_regularizer
 from pointnetX.dataset import NPCDataset

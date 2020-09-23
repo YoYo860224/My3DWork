@@ -3,20 +3,17 @@ import sys
 import natsort
 
 import numpy as np
-import cv2.cv2 as cv2
+import cv2
 import torch
 import torch.utils.data as data
-
 
 sys.path.append(sys.path[0] + "/../")
 from Util.PcdRead import ReadPCD_XYZI    # pylint: disable=import-error
 
-np.random.seed(10)
 
+np.random.seed(10)
 NPC_testSize = 100
 
-
-# pragma pylint: disable=maybe-no-member
 
 class NPCDataset(data.Dataset):
     def __init__(self, root, npoints=300, data_augmentation=True, testing=False):
@@ -111,6 +108,8 @@ class NPCDataset(data.Dataset):
             self.pcimg += [cv2.imread(filepath)]
         # endregion
 
+        return
+        '''
         # region ArtFeature
         artF_N = np.load(os.path.join(self.root, "N_feature.npy"))
         artF_P = np.load(os.path.join(self.root, "P_feature.npy"))
@@ -159,6 +158,7 @@ class NPCDataset(data.Dataset):
         for filepath in filepaths:
             self.voxels += [np.load(filepath)]
         # endregion
+        '''
 
     def __getitem__(self, index):
         pc = self.pc[index]
@@ -177,9 +177,12 @@ class NPCDataset(data.Dataset):
         pc = torch.from_numpy(point_set)
         label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
         img = torch.from_numpy(self.pcimg[index]).float()
+        '''
         artFeature = torch.from_numpy(self.artFeature[index]).float()
         voxel = torch.from_numpy(self.voxels[index]).float()
         return pc, label, img, artFeature, voxel
+        '''
+        return pc, label, img, 0, 0
 
     def __len__(self):
         return len(self.pc)

@@ -1,16 +1,14 @@
-import open3d
 import os
 import natsort
 import math
 import numpy as np
-import cv2.cv2 as cv2
+import cv2
 from pypcd import pypcd
 from PcdRead import ReadPCD_XYZI
 
-# def ReadPCD_XYZ(filename):
-#     pcdata = pypcd.PointCloud.from_path(filename)
-#     pc = np.asarray(pcdata.pc_data[['x', 'y', 'z']].tolist(), dtype=float)
-#     return pc
+'''
+大範圍擴張，輸出含距離，偏檢視用
+'''
 
 def RotateZ(pc):
     avgpc = np.average(pc, 0)
@@ -42,8 +40,8 @@ def GetImage(pc, res=100):
     zMin = minXYZ[2]
     xWidth = maxXYZ[0] - minXYZ[0]
     zWidth = maxXYZ[2] - minXYZ[2]
-    imH = int(zWidth * res)
-    imW = int(xWidth * res)
+    imH = int(max(1, zWidth * res))
+    imW = int(max(1, xWidth * res))
     img1 = np.zeros((imH, imW, 3), dtype=np.uint8)
 
     for i in newPC:
@@ -65,13 +63,13 @@ def GetImage(pc, res=100):
 
 def DilateImage(img, dis):
     dkSize = 3 + int(dis//3)*2
-    dkEle = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dkSize, dkSize))
+    dkEle = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (dkSize*2, dkSize*4))
     img = cv2.dilate(img, dkEle)
 
     return img
 
 def GaussionImage(img):
-    img = cv2.GaussianBlur(img, (3, 3), 5)
+    img = cv2.GaussianBlur(img, (5, 5), 5)
     return img
 
 def FillContour(img, dImg):
@@ -90,7 +88,7 @@ def ImgFlow(pcXYZI):
     imgG = GaussionImage(imgD)
     img = FillContour(imgG, imgD)
     img = cv2.resize(img, (224, 224))
-    return img
+    return img, dis
 
 
 if __name__ == "__main__":
@@ -98,19 +96,16 @@ if __name__ == "__main__":
     toPath = "/media/yoyo/harddisk/kitti_npc/N_img/"
 
     if not os.path.exists(toPath):
-        os.mkdir(toPath)
-
-    i = 0
+        os.makedirs(toPath)
 
     for filename in natsort.natsorted(os.listdir(fromPath)):
         loadfilepath = os.path.join(fromPath, filename)
         pc = ReadPCD_XYZI(loadfilepath)
 
-        img = ImgFlow(pc)
+        img, dis = ImgFlow(pc)
 
-        i+=1
-        savename = '{:04d}.png'.format(i)
+        savename = filename.split('.')[0] + ".png"
         savefilepath = os.path.join(toPath, savename)
         cv2.imwrite(savefilepath, img)
 
-        print(loadfilepath, " OK!")
+        print(loadfilepath, " OK!", dis)

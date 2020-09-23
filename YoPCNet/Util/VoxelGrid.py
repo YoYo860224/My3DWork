@@ -2,11 +2,10 @@ import os
 import natsort
 import math
 import numpy as np
-import cv2.cv2 as cv2
+import cv2
 from pypcd import pypcd
 from PcdRead import ReadPCD_XYZI
 from matplotlib import pyplot as plt
-
 
 
 def getVoxel(pc):
