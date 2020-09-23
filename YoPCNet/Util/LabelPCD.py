@@ -45,7 +45,10 @@ class MyCanvas(vispy.scene.SceneCanvas):
             lines = rf.readlines()
             for i in range(self.lenFile):
                 pcdName, label = lines[i][:-1].split(' ')
-                self.label[i] = label
+                self.label[i] = int(label)
+                frame, idx = [int(x) for x in pcdName.split(".")[0].split("_")]
+                if idx == 0:
+                    self.label[i] = -1
             rf.close()
 
         # Basic View Config
@@ -57,8 +60,8 @@ class MyCanvas(vispy.scene.SceneCanvas):
         self.PCscatter2 = vispy.scene.Markers()
         self.cube = vispy.scene.visuals.Cube(name='cube1', color=(0, 1, 0, 0.2))
         self.axis = vispy.scene.XYZAxis()
-        self.view.add(self.PCscatter)
         self.view.add(self.PCscatter2)
+        self.view.add(self.PCscatter)
         self.view.add(self.cube)
         self.view.add(self.axis)
         self.freeze()
@@ -135,7 +138,7 @@ class MyCanvas(vispy.scene.SceneCanvas):
             pccol[:, 1] = 0
             pccol[:, 2] = 0
             self.cube.transform = cMT
-            self.PCscatter2.set_data(pcxyz, edge_color=None, face_color=pccol, size=3)
+            self.PCscatter2.set_data(pcxyz, edge_color=None, face_color=pccol, size=6)
         
         wf = open(path_labelTxt, "w")
         for i in range(self.lenFile):

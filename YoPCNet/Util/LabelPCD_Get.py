@@ -11,6 +11,7 @@ path_moto   = "/home/yoyo/hdl32_data/Moto"
 path_people = "/home/yoyo/hdl32_data/People"
 
 path_label = [path_other, path_car, path_moto, path_people]
+prefixName = "01"
 
 for i in path_label:
     if not os.path.exists(i):
@@ -23,4 +24,4 @@ for i in f.readlines():
     pcdName, label = i[:-1].split(' ')
     if label != "-1":
         l_int = int(label)
-        copyfile(os.path.join(path_dataS, pcdName), os.path.join(path_label[l_int], pcdName))
+        copyfile(os.path.join(path_dataS, pcdName), os.path.join(path_label[l_int], prefixName + "_" + pcdName))
