@@ -95,16 +95,13 @@ if __name__ == "__main__":
     if not os.path.exists(toPath):
         os.makedirs(toPath)
 
-    i = 0
-
     for filename in natsort.natsorted(os.listdir(fromPath)):
         loadfilepath = os.path.join(fromPath, filename)
         pc = ReadPCD_XYZI(loadfilepath)
 
         img = ImgFlow(pc)
 
-        i+=1
-        savename = '{:04d}.png'.format(i)
+        savename = filename.split('.')[0] + ".png"
         savefilepath = os.path.join(toPath, savename)
         cv2.imwrite(savefilepath, img)
 
