@@ -17,6 +17,6 @@ for filename in natsort.natsorted(os.listdir(fromPath)):
     i+=1
     savename = '{:04d}.pcd'.format(i)
     savefilepath = os.path.join(toPath, savename)
-    pypcd.save_point_cloud(pcdata, savefilepath)
+    pypcd.save_point_cloud_bin(pcdata, savefilepath)
 
     print(loadfilepath, " OK!")
