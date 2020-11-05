@@ -8,7 +8,7 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 
 from pointnetX.model import PointNetCls, feature_transform_regularizer
-from pointnetX.dataset import NPCDataset
+from pointnetX.dataset_hdl32 import NPCDataset
 
 blue = lambda x: '\033[94m' + x + '\033[0m'
 keepTrAccu = []
@@ -18,7 +18,7 @@ keepTrloss = []
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataroot', type=str, default="/media/yoyo/harddisk/kitti_npc", help='input data root')
+    parser.add_argument('--dataroot', type=str, default="/home/yoyo/hdl32_data", help='input data root')
     parser.add_argument('--batchSize', type=int, default=20, help='input batch size')
     parser.add_argument('--epochs', type=int, default=5000, help='epochs')
     parser.add_argument('--outf', type=str, default="./pth", help='epochs')
@@ -48,11 +48,11 @@ if __name__ == "__main__":
         pass
 
     print("Make model.")
-    classifier = PointNetCls(k=3, feature_transform=args.feature_transform)
+    classifier = PointNetCls(k=4, feature_transform=args.feature_transform)
     if args.model:
         classifier.load_state_dict(torch.load(args.model), feature_transform=args.feature_transform)
 
-    optimizer = optim.Adam(classifier.parameters(), lr=0.0001, betas=(0.9, 0.999))
+    optimizer = optim.Adam(classifier.parameters(), lr=0.0003, betas=(0.9, 0.999))
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
     classifier.cuda()
 
@@ -69,7 +69,8 @@ if __name__ == "__main__":
             optimizer.zero_grad()
             classifier = classifier.train()
             pred, trans, trans_feat = classifier(pc, img, artF, voxel)
-            loss = torch.nn.functional.nll_loss(pred, label)
+            loss = torch.nn.functional.cross_entropy(pred, label)
+            # loss = torch.nn.functional.nll_loss(pred, label)
             if args.feature_transform:
                 loss += feature_transform_regularizer(trans_feat) * 0.001
             loss.backward()
@@ -100,7 +101,9 @@ if __name__ == "__main__":
         keepTeAccu += [correct.item() / float(tbSize)]
         keepTeloss += [loss.item()]
         
-        torch.save(classifier.state_dict(), '%s/cls_model_%d.pth' % (args.outf, epoch))
+        if epoch > 5:
+            if keepTeAccu[epoch-1] >= max(keepTeAccu) or (epoch > 4500 and epoch % 100 == 0):
+                torch.save(classifier.state_dict(), '%s/fcePI_cls_model_%d_%f.pth' % (args.outf, epoch, keepTeAccu[epoch-1]))
         scheduler.step()
 
         # vis

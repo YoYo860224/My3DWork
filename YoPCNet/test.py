@@ -3,7 +3,6 @@ import math
 import time
 import argparse
 import numpy as np
-import open3d
 import torch
 import torch.optim as optim
 from torch.autograd import Variable
@@ -12,7 +11,7 @@ from sklearn.metrics import confusion_matrix
 import cv2
 
 from pointnetX.model import PointNetCls, feature_transform_regularizer
-from pointnetX.dataset import NPCDataset
+from pointnetX.dataset_hdl32 import NPCDataset
 
 import itertools
 def plot_confusion_matrix(cm, classes,
@@ -54,7 +53,7 @@ def plot_confusion_matrix(cm, classes,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataroot', type=str, default="/media/yoyo/harddisk/kitti_npc", help='input data root')
+    parser.add_argument('--dataroot', type=str, default="/home/yoyo/hdl32_data", help='input data root')
     parser.add_argument('--model', type=str, help='epochs')
     parser.add_argument('--feature_transform', action='store_true', help="use feature transform")
     args = parser.parse_args()
@@ -68,11 +67,11 @@ if __name__ == "__main__":
         num_workers=4)
 
     # model load
-    classifier = PointNetCls(k=3, feature_transform=args.feature_transform)
+    classifier = PointNetCls(k=4, feature_transform=args.feature_transform)
     classifier.load_state_dict(torch.load(args.model))
     classifier.cuda()
 
-    CM = np.zeros((3, 3), dtype=np.int)
+    CM = np.zeros((4, 4), dtype=np.int)
     tlist = []
     failNum = 0
     for data in dataloader_test:
@@ -92,7 +91,7 @@ if __name__ == "__main__":
         pred_List = pred_choice.data.cpu().numpy()
         label_List = label.data.cpu().numpy()
         tlist.append(time.time()-t)
-        CM += np.asarray(confusion_matrix(label_List, pred_List, labels=[0, 1, 2]), dtype=np.int)
+        CM += np.asarray(confusion_matrix(label_List, pred_List, labels=[0, 1, 2, 3]), dtype=np.int)
 
         failList = (pred_List != label_List)
         for i in range(len(failList)):
@@ -102,6 +101,6 @@ if __name__ == "__main__":
                 failNum+=1
 
     print("Spent time per 20 objs.(out first): ", sum(tlist[1:]) / 280.0 * 20.0)
-    print("Accu: ", (CM[0, 0]+CM[1, 1]+CM[2, 2])/300.0)
-    plot_confusion_matrix(CM, classes=["Others", "Person", "Car"], title="Classification")
+    print("Accu: ", (CM[0, 0]+CM[1, 1]+CM[2, 2]+CM[3, 3])/200.0)
+    plot_confusion_matrix(CM, classes=["Others", "Person", "Car", "Moto"], title="Classification")
     plt.show()
