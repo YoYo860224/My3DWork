@@ -8,7 +8,7 @@ import pypcd
 from skimage.transform import integral_image
 from skimage import feature as ft
 
-from PcdRead import ReadPCD_XYZI
+from .PcdRead import ReadPCD_XYZI
 
 
 # region Features
