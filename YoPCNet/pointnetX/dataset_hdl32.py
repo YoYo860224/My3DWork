@@ -9,6 +9,7 @@ import torch.utils.data as data
 
 sys.path.append(sys.path[0] + "/../")
 from Util.PcdRead import ReadPCD_XYZI    # pylint: disable=import-error
+from Util.ArtFeature import f15_Haar
 
 
 np.random.seed(10)
@@ -131,25 +132,6 @@ class NPCDataset(data.Dataset):
             self.pcimg += [cv2.imread(filepath)]
         # endregion
 
-        artF_O = np.load(os.path.join(self.root, "O_feature.npy"))
-        artF_P = np.load(os.path.join(self.root, "P_feature.npy"))
-        artF_C = np.load(os.path.join(self.root, "C_feature.npy"))
-        artF_M = np.load(os.path.join(self.root, "M_feature.npy"))
-        if testing:
-            self.artFeature = np.concatenate([
-                artF_O[0:NPC_testSize, :],
-                artF_P[0:NPC_testSize, :],
-                artF_C[0:NPC_testSize, :],
-                artF_M[0:NPC_testSize, :]])
-        else:
-            self.artFeature = np.concatenate([
-                artF_O[NPC_testSize:, :],
-                artF_P[NPC_testSize:, :],
-                artF_C[NPC_testSize:, :],
-                artF_M[NPC_testSize:, :]])
-
-        return
-
     def __getitem__(self, index):
         pc = self.pc[index]
         choice = np.random.choice(len(pc), self.npoints, replace=True)
@@ -167,9 +149,9 @@ class NPCDataset(data.Dataset):
         pc = torch.from_numpy(point_set)
         label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
         img = torch.from_numpy(self.pcimg[index]).float()
-        artFeature = torch.from_numpy(self.artFeature[index]).float()
+        artF = torch.from_numpy(f15_Haar(self.pcimg[index])).float()
 
-        return pc, label, img, artFeature, 0
+        return pc, label, img, artF
 
     def __len__(self):
         return len(self.pc)

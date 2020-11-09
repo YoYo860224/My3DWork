@@ -9,6 +9,7 @@ import torch.utils.data as data
 
 sys.path.append(sys.path[0] + "/../")
 from Util.PcdRead import ReadPCD_XYZI    # pylint: disable=import-error
+from Util.ArtFeature import f15_Haar
 
 
 np.random.seed(10)
@@ -108,58 +109,6 @@ class NPCDataset(data.Dataset):
             self.pcimg += [cv2.imread(filepath)]
         # endregion
 
-        return
-        '''
-        # region ArtFeature
-        artF_N = np.load(os.path.join(self.root, "N_feature.npy"))
-        artF_P = np.load(os.path.join(self.root, "P_feature.npy"))
-        artF_C = np.load(os.path.join(self.root, "C_feature.npy"))
-        if testing:
-            self.artFeature = np.concatenate([artF_N[0:100, :], artF_P[0:100, :], artF_C[0:100, :]])
-        else:
-            self.artFeature = np.concatenate([artF_N[100:, :], artF_P[100:, :], artF_C[100:, :]])
-        # endregion
-
-        # region Voxel
-        filepaths = []
-        s = 0
-        path_n = os.path.join(self.root, "N_voxel")
-        for filename in natsort.natsorted(os.listdir(path_n)):
-            if self.testing and s >= NPC_testSize:
-                break
-            if s < NPC_testSize:
-                s+=1
-                if not self.testing:
-                    continue
-            filepaths += [os.path.join(path_n, filename)]
-
-        s = 0
-        path_p = os.path.join(self.root, "P_voxel")
-        for filename in natsort.natsorted(os.listdir(path_p)):
-            if self.testing and s >= NPC_testSize:
-                break
-            if s < NPC_testSize:
-                s+=1
-                if not self.testing:
-                    continue
-            filepaths += [os.path.join(path_p, filename)]
-        
-        s = 0
-        path_c = os.path.join(self.root, "C_voxel")
-        for filename in natsort.natsorted(os.listdir(path_c)):
-            if self.testing and s >= NPC_testSize:
-                break
-            if s < NPC_testSize:
-                s+=1
-                if not self.testing:
-                    continue
-            filepaths += [os.path.join(path_c, filename)]
-
-        for filepath in filepaths:
-            self.voxels += [np.load(filepath)]
-        # endregion
-        '''
-
     def __getitem__(self, index):
         pc = self.pc[index]
         choice = np.random.choice(len(pc), self.npoints, replace=True)
@@ -177,12 +126,9 @@ class NPCDataset(data.Dataset):
         pc = torch.from_numpy(point_set)
         label = torch.from_numpy(np.array([self.labels[index]], dtype=np.int64))
         img = torch.from_numpy(self.pcimg[index]).float()
-        '''
-        artFeature = torch.from_numpy(self.artFeature[index]).float()
-        voxel = torch.from_numpy(self.voxels[index]).float()
-        return pc, label, img, artFeature, voxel
-        '''
-        return pc, label, img, 0, 0
+        artF = torch.from_numpy(f15_Haar(self.pcimg[index])).float()
+
+        return pc, label, img, artF
 
     def __len__(self):
         return len(self.pc)

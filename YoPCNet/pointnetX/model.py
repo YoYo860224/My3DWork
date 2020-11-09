@@ -203,21 +203,28 @@ class VoxelNet(nn.Module):
         return voxel
 
 class PointNetCls(nn.Module):
-    def __init__(self, k=2, feature_transform=False):
+    def __init__(self, mtype, k=2, feature_transform=False):
         super(PointNetCls, self).__init__()
+        self.mtype = mtype
         self.feature_transform = feature_transform
+
+        self.initDim = 0
         # PointNet 1024
-        self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform)
+        if "P" in self.mtype:
+            self.feat = PointNetfeat(global_feat=True, feature_transform=feature_transform)
+            self.initDim += 1024
 
-        # # Voxel 512
-        # self.voxelNet = VoxelNet()
+        # Img 1000
+        if "I" in self.mtype:
+            self.mobileNet = MobileNet()
+            # self.vgg = models.vgg16(pretrained=True)
+            self.initDim += 1000
 
-        # # Img 1000
-        self.mobileNet = MobileNet()
-        # self.vgg = models.vgg16(pretrained=True)
+        if "H" in self.mtype:
+            self.initDim += 256
         
         # Classfication
-        self.fc1 = nn.Linear(1024+1000, 512)
+        self.fc1 = nn.Linear(self.initDim, 512)
         self.fc2 = nn.Linear(512, 256)
         self.fc3 = nn.Linear(256, k)
         self.dropout = nn.Dropout(p=0.3)
@@ -225,31 +232,33 @@ class PointNetCls(nn.Module):
         self.bn2 = nn.BatchNorm1d(256)
         self.relu = nn.ReLU()
 
-    def forward(self, x, img, artF, voxel):
-        # ==> 1024
-        pf, trans, trans_feat = self.feat(x)
+    def forward(self, x, img, artF):
+        tensorlist = []
 
-        # ==> 512
-        # voxel = voxel.unsqueeze(1)
-        # vd = self.voxelNet(voxel)
+        # ==> 1024
+        if "P" in self.mtype:
+            pf, trans, trans_feat = self.feat(x)
+            tensorlist.append(pf)
 
         # ==> 1000
-        img = img.permute([0, 3, 1, 2]).float()
-        x2d = self.mobileNet(img)
-        # x2d = self.vgg(img)
+        if "I" in self.mtype:
+            img = img.permute([0, 3, 1, 2]).float()
+            x2d = self.mobileNet(img)
+            # x2d = self.vgg(img)
+            tensorlist.append(x2d)
+
+        if "H" in self.mtype:
+            tensorlist.append(artF)
 
         # ==> Cat
-        x = pf
-        # x = torch.cat([pf, artF], 1)
-        # x = torch.cat([pf, x2d, artF], 1)
-        x = torch.cat([pf, x2d], 1)
+        x = torch.cat(tensorlist, 1)
 
+        # Classfication
         x = F.relu(self.bn1(self.fc1(x)))
         x = F.relu(self.bn2(self.dropout(self.fc2(x))))
         x = self.fc3(x)
 
         return F.log_softmax(x, dim=1), trans, trans_feat
-        # return F.log_softmax(x, dim=1), 0, 0
 
 class PointNetDenseCls(nn.Module):
     def __init__(self, k = 2, feature_transform=False):

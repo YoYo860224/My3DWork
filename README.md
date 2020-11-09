@@ -6,8 +6,17 @@
 ```
 conda install pytorch==1.1.0 torchvision==0.3.0 cudatoolkit=10.0 -c pytorch
 
-python train.py --feature_transform
-python test.py --feature_transform --model=./pth/cls_model_1.pth
-python train.py --dataroot=/media/yoyo/harddisk/kitti_npc
-python test.py --dataroot=/media/yoyo/harddisk/kitti_npc --model=./pth/cls_model_1.pth
+python train.py --mtype=P
+python train.py --mtype=P --feature_transform
+python train.py --mtype=PI
+python train.py --mtype=PI --feature_transform
+python train.py --mtype=PH
+python train.py --mtype=PH --feature_transform
+
+python train.py --mtype=P --ltype=NL
+python train.py --mtype=P --ltype=NL --feature_transform
+python train.py --mtype=PI --ltype=NL
+python train.py --mtype=PI --ltype=NL --feature_transform
+python train.py --mtype=PH --ltype=NL
+python train.py --mtype=PH --ltype=NL --feature_transform
 ```

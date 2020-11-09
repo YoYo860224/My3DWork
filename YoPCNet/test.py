@@ -12,7 +12,8 @@ import itertools
 import cv2
 
 from pointnetX.model import PointNetCls, feature_transform_regularizer
-from pointnetX.dataset_hdl32 import NPCDataset
+from pointnetX.dataset import NPCDataset
+# from pointnetX.dataset_hdl32 import NPCDataset
 
 
 def plot_confusion_matrix(cm, 
@@ -57,14 +58,22 @@ def plot_confusion_matrix(cm,
 if __name__ == "__main__":
     # Parse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataroot', type=str, default="/home/yoyo/hdl32_data", help='input data root')
-    parser.add_argument('--model', type=str, help='epochs')
+    parser.add_argument('--dataroot', type=str, default="/home/yoyo/hdl32_data", help='Input data root.')
+    parser.add_argument('--batchSize', type=int, default=20, help='Input batch size.')
+    parser.add_argument('--ltype', type=str, default="CE", help='CE: cross-entropy loss, NL: nll loss')
+    parser.add_argument('--mtype', type=str, default="P", help='P: pointNet, I: MobileNet, H: Haar-like')
     parser.add_argument('--feature_transform', action='store_true', help="use feature transform")
-    parser.add_argument('--batchSize', type=int, default=20, help='input batch size')
+    parser.add_argument('--model', type=str, help='load model.')
+    parser.add_argument('--outImgDir', type=str, help='output dir.')
     args = parser.parse_args()
     
-    # class_list=["Others", "Person", "Car"]
-    class_list=["Others", "Person", "Car", "Moto"]
+    args.dataroot="/media/yoyo/harddisk/kitti_npc"
+    class_list=["Others", "Person", "Car"]
+    dataName = "v64"
+
+    # args.dataroot="/home/yoyo/hdl32_data"
+    # class_list=["Others", "Person", "Car", "Moto"]
+    # dataName = "v32"
 
     # Data
     print("Prepare Dataset.")
@@ -77,11 +86,16 @@ if __name__ == "__main__":
     
     # Model load
     print("Make model.")
-    classifier = PointNetCls(k=len(class_list), feature_transform=args.feature_transform)
+    classifier = PointNetCls(mtype=args.mtype, k=len(class_list), feature_transform=args.feature_transform)
     classifier.load_state_dict(torch.load(args.model))
     classifier.cuda()
 
     # For statistics 
+    if args.ltype=="CE":
+        loss_func = torch.nn.functional.cross_entropy
+    else:
+        loss_func = torch.nn.functional.nll_loss
+
     CM = np.zeros((len(class_list), len(class_list)), dtype=np.int)
     tlist = []
     failNum = 0
@@ -93,17 +107,16 @@ if __name__ == "__main__":
         t = time.time()
         
         # Get Data
-        pc, label, img, artF, voxel = data
+        pc, label, img, artF = data
         label = label[:, 0]
         pc = pc.transpose(2, 1)
-        pc, label, img, artF, voxel = pc.cuda(), label.cuda(), img.cuda(), artF.cuda(), voxel.cuda()
+        pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
 
         # Eval model
         classifier = classifier.eval()
-        pred, trans, trans_feat = classifier(pc, img, artF, voxel)
+        pred, trans, trans_feat = classifier(pc, img, artF)
 
-        loss = torch.nn.functional.cross_entropy(pred, label)
-        # loss = torch.nn.functional.nll_loss(pred, label)
+        loss = loss_func(pred, label)
         if args.feature_transform:
             loss += feature_transform_regularizer(trans_feat) * 0.001
 
@@ -119,16 +132,17 @@ if __name__ == "__main__":
         CM += np.asarray(confusion_matrix(label_List, pred_List, labels=list(range(len(class_list)))), dtype=np.int)
 
         # Check Fail Img
-        failList = (pred_List != label_List)
-        for i in range(len(failList)):
-            if failList[i]==True:
-                failImg = img[i].cpu().numpy()
-                os.makedirs("./failImg", exist_ok=True)
-                cv2.imwrite("./failImg/{0}__(p{1}, g{2}).png".format(failNum, pred_List[i], label_List[i]), failImg)
-                failNum+=1
+        if args.outImgDir:
+            failList = (pred_List != label_List)
+            for i in range(len(failList)):
+                if failList[i]==True:
+                    failImg = img[i].cpu().numpy()
+                    os.makedirs(args.outImgDir, exist_ok=True)
+                    cv2.imwrite(os.path.join(args.outImgDir, "{0}__(p{1}, g{2}).png".format(failNum, pred_List[i], label_List[i])), failImg)
+                    failNum+=1
 
     # Result
     print("Spent time per {0} objs.(out first): {1}".format(args.batchSize, (sum(tlist[1:]) / dataNum) * args.batchSize))
     print("Accu: ", sum([CM[i, i] for i in range(len(class_list))]) / dataNum)
-    plot_confusion_matrix(CM, classes=["Others", "Person", "Car", "Moto"], title="Classification")
+    plot_confusion_matrix(CM, classes=class_list, title="Classification")
     plt.show()

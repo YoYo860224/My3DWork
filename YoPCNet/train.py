@@ -8,8 +8,8 @@ from torch.autograd import Variable
 import matplotlib.pyplot as plt
 
 from pointnetX.model import PointNetCls, feature_transform_regularizer
-from pointnetX.dataset_hdl32 import NPCDataset
-
+from pointnetX.dataset import NPCDataset
+# from pointnetX.dataset_hdl32 import NPCDataset
 
 blue = lambda x: '\033[94m' + x + '\033[0m'
 keepAccu_train = []
@@ -20,16 +20,23 @@ keeploss_test = []
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataroot', type=str, default="/home/yoyo/hdl32_data", help='input data root')
-    parser.add_argument('--batchSize', type=int, default=20, help='input batch size')
-    parser.add_argument('--epochs', type=int, default=5000, help='epochs')
-    parser.add_argument('--outf', type=str, default="./pth", help='epochs')
-    parser.add_argument('--model', type=str, help='epochs')
+    parser.add_argument('--dataroot', type=str, default="/home/yoyo/hdl32_data", help='Input data root.')
+    parser.add_argument('--batchSize', type=int, default=20, help='Input batch size.')
+    parser.add_argument('--epochs', type=int, default=100, help='epochs')
+    parser.add_argument('--ltype', type=str, default="CE", help='CE: cross-entropy loss, NL: nll loss')
+    parser.add_argument('--mtype', type=str, default="P", help='P: pointNet, I: MobileNet, H: Haar-like')
     parser.add_argument('--feature_transform', action='store_true', help="use feature transform")
+    parser.add_argument('--outd', type=str, default="./pth", help='output dir.')
+    parser.add_argument('--model', type=str, help='load model')
     args = parser.parse_args()
 
-    # class_list=["Others", "Person", "Car"]
-    class_list=["Others", "Person", "Car", "Moto"]
+    args.dataroot="/media/yoyo/harddisk/kitti_npc"
+    class_list=["Others", "Person", "Car"]
+    dataName = "v64"
+
+    # args.dataroot="/home/yoyo/hdl32_data"
+    # class_list=["Others", "Person", "Car", "Moto"]
+    # dataName = "v32"
 
     # Data
     print("Prepare Dataset.")
@@ -49,20 +56,26 @@ if __name__ == "__main__":
 
     # Make Dir
     try:
-        print("mkdir ", args.outf)
-        os.makedirs(args.outf)
+        print("mkdir ", args.outd)
+        os.makedirs(args.outd)
     except OSError:
         pass
 
     # Model load
     print("Make model.")
-    classifier = PointNetCls(k=len(class_list), feature_transform=args.feature_transform)
+    classifier = PointNetCls(mtype=args.mtype, k=len(class_list), feature_transform=args.feature_transform)
     if args.model:
         classifier.load_state_dict(torch.load(args.model), feature_transform=args.feature_transform)
 
+    # Model detail
+    if args.ltype=="CE":
+        loss_func = torch.nn.functional.cross_entropy
+    else:
+        loss_func = torch.nn.functional.nll_loss
     optimizer = optim.Adam(classifier.parameters(), lr=0.0003, betas=(0.9, 0.999))
     scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
     classifier.cuda()
+
 
     # Train
     print("Training start.")
@@ -75,19 +88,18 @@ if __name__ == "__main__":
 
         for i, data in enumerate(dataloader, 0):
             # Get Data
-            pc, label, img, artF, voxel = data
+            pc, label, img, artF = data
             tbSize = len(label)
             label = label[:, 0]
             pc = pc.transpose(2, 1)
-            pc, label, img, artF, voxel = pc.cuda(), label.cuda(), img.cuda(), artF.cuda(), voxel.cuda()
+            pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
             
             # Train
             optimizer.zero_grad()
             classifier = classifier.train()
-            pred, trans, trans_feat = classifier(pc, img, artF, voxel)
+            pred, trans, trans_feat = classifier(pc, img, artF)
 
-            loss = torch.nn.functional.cross_entropy(pred, label)
-            # loss = torch.nn.functional.nll_loss(pred, label)
+            loss = loss_func(pred, label)
             if args.feature_transform:
                 loss += feature_transform_regularizer(trans_feat) * 0.001
             
@@ -113,18 +125,17 @@ if __name__ == "__main__":
         dataNum = len(dataset_test)
         for i, data in enumerate(dataloader_test, 0):
             # Get Data
-            pc, label, img, artF, voxel = data
+            pc, label, img, artF = data
             tbSize = len(label)
             label = label[:, 0]
             pc = pc.transpose(2, 1)
-            pc, label, img, artF, voxel = pc.cuda(), label.cuda(), img.cuda(), artF.cuda(), voxel.cuda()
+            pc, label, img, artF = pc.cuda(), label.cuda(), img.cuda(), artF.cuda()
 
             # Eval model
             classifier = classifier.eval()
-            pred, trans, trans_feat = classifier(pc, img, artF, voxel)
+            pred, trans, trans_feat = classifier(pc, img, artF)
 
-            loss = torch.nn.functional.cross_entropy(pred, label)
-            # loss = torch.nn.functional.nll_loss(pred, label)
+            loss = loss_func(pred, label)
             if args.feature_transform:
                 loss += feature_transform_regularizer(trans_feat) * 0.001
             
@@ -145,15 +156,29 @@ if __name__ == "__main__":
         # Save Model
         if epoch > 5:
             if keepAccu_test[-1] >= max(keepAccu_test) or (epoch > 4500 and epoch % 100 == 0):
-                torch.save(classifier.state_dict(), '%s/fcePI_cls_model_%d_%f.pth' % (args.outf, epoch, keepAccu_test[-1]))
+                torch.save(classifier.state_dict(), "{0}/{1}/{2}.{3}.{4}_{1}_model_{5:04d}_{6:0.3f}.pth".format(args.outd,
+                                                                                                                dataName,
+                                                                                                                args.ltype,
+                                                                                                                args.mtype,
+                                                                                                                "wF" if args.feature_transform else "nF",
+                                                                                                                epoch,
+                                                                                                                keepAccu_test[-1]))
 
         # Visualize
         plt.ylim(0, 1)
         plt.plot(keepAccu_train, "b")
         plt.plot(keepAccu_test, "r")
-        plt.savefig("./Accu.png")
+        plt.savefig("{0}/{1}/ImgAccu/{2}.{3}.{4}_{1}_Accu.png".format(args.outd,
+                                                                      dataName,
+                                                                      args.ltype,
+                                                                      args.mtype,
+                                                                      "wF" if args.feature_transform else "nF"))
         plt.cla()
         plt.plot(keeploss_train, "b")
         plt.plot(keeploss_test, "r")
-        plt.savefig("./Loss.png")
+        plt.savefig("{0}/{1}/ImgLoss/{2}.{3}.{4}_{1}_Loss.png".format(args.outd,
+                                                                     dataName,
+                                                                     args.ltype,
+                                                                     args.mtype,
+                                                                     "wF" if args.feature_transform else "nF"))
         plt.cla()
