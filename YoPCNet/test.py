@@ -133,12 +133,18 @@ if __name__ == "__main__":
 
         # Check Fail Img
         if args.outImgDir:
+            os.makedirs(args.outImgDir, exist_ok=True)
+
             failList = (pred_List != label_List)
             for i in range(len(failList)):
                 if failList[i]==True:
                     failImg = img[i].cpu().numpy()
-                    os.makedirs(args.outImgDir, exist_ok=True)
                     cv2.imwrite(os.path.join(args.outImgDir, "{0}__(p{1}, g{2}).png".format(failNum, pred_List[i], label_List[i])), failImg)
+
+                    failPC = pc[i].cpu().numpy()
+                    failPC = failPC.transpose(1, 0)
+                    np.save(os.path.join(args.outImgDir, "{0}__(p{1}, g{2}).npy".format(failNum, pred_List[i], label_List[i])), failPC)
+
                     failNum+=1
 
     # Result
